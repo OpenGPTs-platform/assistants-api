@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Set the working directory in the container
-WORKDIR /backend
+WORKDIR /
 
 # Copy the current directory contents into the container at /backend
 COPY . .
@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8000
 
 # Navigate to the app directory (if your FastAPI app is inside an 'app' folder)
-WORKDIR /backend/app
+WORKDIR ./app
 
 # Run main.py when the container launches
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

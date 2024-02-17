@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from routers import gpt_router, user_router, thread_router, auth_router
+from routers import (
+    gpt_router,
+    user_router,
+    thread_router,
+    auth_router,
+    assistant_router,
+)
 from db.database import engine
 from db import models
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +27,7 @@ app.add_middleware(
 # Create the database tables
 models.Base.metadata.create_all(bind=engine)
 
+app.include_router(assistant_router.router)
 app.include_router(auth_router.router)
 app.include_router(gpt_router.router)
 app.include_router(thread_router.router)
