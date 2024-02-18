@@ -1,8 +1,52 @@
 # assistants-api
 
-Immitate the OpenAI Assistants API in FastAPI using the official [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml)
+Immitate the OpenAI Assistants API in FastAPI using the official [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml).
+
+The [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml) is the source of truth for this API.
+
+# Quickstart
+
+1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
+2. Run the dev environment with [`rundev.sh`](./rundev.sh) script.
+3. Simply edit the host for your OpenAI client and you can use this API in the same way:
+
+```python
+client_to_oai = OpenAI(api_key="sk-...") # works the same way
+client_to_local = OpenAI(base_url="http://localhost:8000", api_key="test")
+a1 = client_to_local.beta.assistants.create(model="gpt-3.5-turbo", name="test")
+a2 = client_to_local.beta.assistants.create(model="gpt-3.5-turbo", instruction="You are real-human")
+for assistant in client_to_local.beta.assistants.list().data:
+    print(client_to_local)
+    client_to_local.beta.assistants.delete(assistant.id)
+```
+
+
+# Development
+## Quickstart
+1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
+2. Create a virtual environment and install dependencies `python -m venv .venv`. Activate it.
+3. Install dependencies `pip install -r requirements.txt`.
+4. Install pre-commit hooks `pre-commit install`.
+5. Run the dev environment with [`rundev.sh`](./rundev.sh) script.
+6. Run tests to verify everything is working `pytest`.
 
 ## Helper ["Assistants API" Dev Assistant GPT](https://chat.openai.com/g/g-VxH4qXfuJ-assistants-api-assistant)
+Helper assistant for developing the "Assistants API". Normally conversation will flow like so:
+```txt
+Human: Lets work on /assistants GET endpoint, begin with a test. Here is an example of what I have so far:
+<GIVE IT A BRIEF EXAMPLE OF CURRENT CODE>
+
+Assistant: <RESPONDS WITH TEST CODE>
+
+Human: Ok lets move on to the endpoint. Here is what I have so far:
+<GIVE IT A BRIEF EXAMPLE OF CURRENT ROUTES CODE>
+<GIVE IT A BRIEF EXAMPLE OF CURRENT CRUD CODE>
+<GIVE IT A BRIEF EXAMPLE OF CURRENT SCHEMA CODE>
+
+Assistant: <RESPONDS WITH RELEVANT CODE>
+
+THEN WHEN YOU REPEAT WITH THE CURRENT CHAT YOU SHOULD NOT NEED ALL THE EXAMPLES
+```
 
 ### Instruction
 
