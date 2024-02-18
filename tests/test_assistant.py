@@ -76,6 +76,7 @@ def test_list_assistants_order(openai_client: OpenAI):
 
 
 # /assistants/{assistant_id} GET
+@pytest.mark.dependency(depends=["test_create_assistant"])
 def test_get_assistant(openai_client: OpenAI):
     # Assuming "test_create_assistant" creates an assistant and returns its ID
     template = {
@@ -99,6 +100,7 @@ def test_get_assistant(openai_client: OpenAI):
 
 
 # /assistants/{assistant_id} POST
+@pytest.mark.dependency(depends=["test_create_assistant"])
 def test_modify_assistant(openai_client: OpenAI):
     template = {
         "model": "gpt-4",
@@ -127,3 +129,32 @@ def test_modify_assistant(openai_client: OpenAI):
     assert response.name == template["name"]
     assert response.metadata["str"] == updated_template["metadata"]["str"]
     assert response.metadata["bool"] == updated_template["metadata"]["bool"]
+
+
+@pytest.mark.dependency(depends=["test_create_assistant"])
+def test_delete_assistant(openai_client: OpenAI):
+    # Assuming an assistant has been created in a prior test and its ID is retrievable
+    template = {
+        "model": "gpt-4",
+        "name": "Example Assistant",
+        "instructions": "You are an AI designed to provide examples.",
+        "metadata": {"str": "string", "int": 1, "list": [1, 2, 3]},
+    }
+    new_assistant = openai_client.beta.assistants.create(**template)
+
+    # Perform the delete operation
+    response = openai_client.beta.assistants.delete(new_assistant.id)
+
+    # Verify the deletion response
+    assert response.id == new_assistant.id
+    assert response.deleted is True
+    assert response.object == "assistant.deleted"
+
+    # try and retrieve the assistant again
+    try:
+        openai_client.beta.assistants.retrieve(new_assistant.id)
+    except Exception as e:
+        assert e.status_code == 404
+        assert "Assistant not found" in str(e)
+    else:
+        raise AssertionError("Assistant was not deleted")

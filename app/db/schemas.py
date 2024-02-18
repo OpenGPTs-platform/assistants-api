@@ -1,8 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta.assistant_deleted import AssistantDeleted
 
 Assistant
+AssistantDeleted
 
 
 class AssistantCreate(BaseModel):

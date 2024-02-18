@@ -73,3 +73,16 @@ def update_assistant(db: Session, assistant_id: str, assistant_update: dict):
         db.refresh(db_assistant)
         return db_assistant
     return None
+
+
+def delete_assistant(db: Session, assistant_id: str) -> bool:
+    assistant = (
+        db.query(models.Assistant)
+        .filter(models.Assistant.id == assistant_id)
+        .first()
+    )
+    if not assistant:
+        return False
+    db.delete(assistant)
+    db.commit()
+    return True

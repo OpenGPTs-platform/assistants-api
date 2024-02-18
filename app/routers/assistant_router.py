@@ -87,3 +87,17 @@ def update_assistant(
     )
 
     return db_to_pydantic_assistant(updated_assistant)
+
+
+@router.delete(
+    "/assistants/{assistant_id}",
+    response_model=schemas.AssistantDeleted,
+)
+def delete_assistant(
+    assistant_id: str,
+    db: Session = Depends(get_db),
+):
+    deletion_success = crud.delete_assistant(db=db, assistant_id=assistant_id)
+    if not deletion_success:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    return {"id": assistant_id, "deleted": True, "object": "assistant.deleted"}
