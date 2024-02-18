@@ -60,7 +60,7 @@ def list_assistants(
 def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
     """
     Retrieves an assistant by its unique ID.
-    
+
     - **assistant_id**: UUID of the assistant to retrieve.
     """
     db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
@@ -87,7 +87,7 @@ def update_assistant(
         - `tools`: Optional. List of tools enabled on the assistant.
         - `metadata`: Optional. Metadata key-value pairs attached to the assistant.
         - `file_ids`: Optional. List of file IDs attached to the assistant.
-    """
+    """  # noqa
     # Retrieve the existing assistant
     db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
     if db_assistant is None:
@@ -113,7 +113,7 @@ def delete_assistant(
 ):
     """
     Deletes an assistant by its unique ID.
-    
+
     - **assistant_id**: UUID of the assistant to delete.
     """
     deletion_success = crud.delete_assistant(db=db, assistant_id=assistant_id)
