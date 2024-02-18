@@ -59,7 +59,9 @@ def list_assistants(
 @router.get("/assistants/{assistant_id}", response_model=schemas.Assistant)
 def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
     """
-    Retrieves an assistant by ID.
+    Retrieves an assistant by its unique ID.
+    
+    - **assistant_id**: UUID of the assistant to retrieve.
     """
     db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
     if db_assistant is None:
@@ -73,6 +75,19 @@ def update_assistant(
     assistant_update: schemas.AssistantUpdate,
     db: Session = Depends(get_db),
 ):
+    """
+    Updates specified fields of an existing assistant.
+
+    - **assistant_id**: UUID of the assistant to update.
+    - **assistant_update**: JSON body containing fields to update on the assistant.
+        - `name`: Optional. New name of the assistant (max length: 256).
+        - `description`: Optional. New description of the assistant (max length: 512).
+        - `model`: Optional. Model ID to use for the assistant (max length: 256).
+        - `instructions`: Optional. System instructions for the assistant (max length: 32768).
+        - `tools`: Optional. List of tools enabled on the assistant.
+        - `metadata`: Optional. Metadata key-value pairs attached to the assistant.
+        - `file_ids`: Optional. List of file IDs attached to the assistant.
+    """
     # Retrieve the existing assistant
     db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
     if db_assistant is None:
@@ -96,6 +111,11 @@ def delete_assistant(
     assistant_id: str,
     db: Session = Depends(get_db),
 ):
+    """
+    Deletes an assistant by its unique ID.
+    
+    - **assistant_id**: UUID of the assistant to delete.
+    """
     deletion_success = crud.delete_assistant(db=db, assistant_id=assistant_id)
     if not deletion_success:
         raise HTTPException(status_code=404, detail="Assistant not found")
