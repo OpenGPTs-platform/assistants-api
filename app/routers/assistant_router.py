@@ -26,7 +26,6 @@ def create_assistant(
     - **metadata**: Set of 16 key-value pairs that can be attached to the assistant.
     """
     db_assistant = crud.create_assistant(db=db, assistant=assistant)
-    print("db_assistant", db_assistant)
     return db_assistant
 
 
@@ -67,3 +66,24 @@ def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
     if db_assistant is None:
         raise HTTPException(status_code=404, detail="Assistant not found")
     return db_to_pydantic_assistant(db_assistant)
+
+
+@router.post("/assistants/{assistant_id}", response_model=schemas.Assistant)
+def update_assistant(
+    assistant_id: str,
+    assistant_update: schemas.AssistantUpdate,
+    db: Session = Depends(get_db),
+):
+    # Retrieve the existing assistant
+    db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
+    if db_assistant is None:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+
+    # Update the assistant with new values
+    updated_assistant = crud.update_assistant(
+        db=db,
+        assistant_id=assistant_id,
+        assistant_update=assistant_update.model_dump(exclude_none=True),
+    )
+
+    return db_to_pydantic_assistant(updated_assistant)

@@ -7,8 +7,7 @@ import uuid
 
 # ASSISTANT
 def create_assistant(db: Session, assistant: schemas.AssistantCreate):
-    tools = [tool.dict() for tool in assistant.tools]
-    print("tools", tools)
+    tools = [tool.model_dump() for tool in assistant.tools]
     # Generate a unique ID for the new assistant
     db_assistant = models.Assistant(
         id=str(uuid.uuid4()),
@@ -58,3 +57,19 @@ def get_assistant_by_id(db: Session, assistant_id: str):
         .filter(models.Assistant.id == assistant_id)
         .first()
     )
+
+
+def update_assistant(db: Session, assistant_id: str, assistant_update: dict):
+    db_assistant = (
+        db.query(models.Assistant)
+        .filter(models.Assistant.id == assistant_id)
+        .first()
+    )
+    if db_assistant:
+        for key, value in assistant_update.items():
+            if value:
+                setattr(db_assistant, key, value)
+        db.commit()
+        db.refresh(db_assistant)
+        return db_assistant
+    return None

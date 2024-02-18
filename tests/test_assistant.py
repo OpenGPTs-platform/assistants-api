@@ -49,6 +49,7 @@ def test_list_assistants_after_creation(openai_client: OpenAI):
     assert all(isinstance(item, Assistant) for item in response.data)
 
 
+# /assistants GET
 @pytest.mark.dependency(depends=["test_create_assistant"])
 def test_list_assistants_limit(openai_client: OpenAI):
     limit = 1
@@ -58,6 +59,7 @@ def test_list_assistants_limit(openai_client: OpenAI):
     assert all(isinstance(item, Assistant) for item in response.data)
 
 
+# /assistants GET
 @pytest.mark.dependency(depends=["test_create_assistant"])
 def test_list_assistants_order(openai_client: OpenAI):
     response_desc = openai_client.beta.assistants.list(order="desc")
@@ -76,20 +78,52 @@ def test_list_assistants_order(openai_client: OpenAI):
 # /assistants/{assistant_id} GET
 def test_get_assistant(openai_client: OpenAI):
     # Assuming "test_create_assistant" creates an assistant and returns its ID
-    new_assistant = openai_client.beta.assistants.create(
-        model="gpt-4",
-        name="Example Assistant",
-    )
+    template = {
+        "model": "gpt-4",
+        "name": "Example Assistant",
+    }
+    new_assistant = openai_client.beta.assistants.create(**template)
 
     response = openai_client.beta.assistants.retrieve(new_assistant.id)
 
     # Validate the response structure and data
     assert isinstance(response, Assistant)
     assert response.id == new_assistant.id
-    assert response.model == "gpt-4"
-    assert response.name == "Example Assistant"
+    assert response.model == template["model"]
+    assert response.name == template["name"]
     assert response.object == "assistant"
     assert isinstance(response.created_at, int)
     assert datetime.utcfromtimestamp(
         response.created_at
     )  # Checks if `created_at` is a valid timestamp"
+
+
+# /assistants/{assistant_id} POST
+def test_modify_assistant(openai_client: OpenAI):
+    template = {
+        "model": "gpt-4",
+        "name": "Example Assistant",
+        "instructions": "You are an AI designed to provide examples.",
+        "metadata": {"str": "string", "int": 1, "list": [1, 2, 3]},
+    }
+    new_assistant = openai_client.beta.assistants.create(**template)
+
+    updated_template = {
+        "instructions": "Updated instructions for the assistant.",
+        "tools": [{"type": "code_interpreter"}],
+        "metadata": {**template["metadata"], "bool": True},
+    }
+    # Perform the update operation
+    response = openai_client.beta.assistants.update(
+        new_assistant.id,
+        **updated_template,
+    )
+
+    # Verify the response
+    assert isinstance(response, Assistant)
+    assert response.id == new_assistant.id
+    assert response.instructions == updated_template["instructions"]
+    assert isinstance(response.tools[0], ToolCodeInterpreter)
+    assert response.name == template["name"]
+    assert response.metadata["str"] == updated_template["metadata"]["str"]
+    assert response.metadata["bool"] == updated_template["metadata"]["bool"]

@@ -26,3 +26,13 @@ class AssistantCreate(BaseModel):
                 "metadata": {},
             }
         }
+
+
+class AssistantUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=256)
+    description: Optional[str] = Field(None, max_length=512)
+    model: Optional[str] = Field(None, max_length=256)
+    instructions: Optional[str] = Field(None, max_length=32768)
+    tools: Optional[List[Tool]] = Field(None)
+    metadata: Optional[Dict[str, Any]] = Field(None)
+    file_ids: Optional[List[str]] = Field(None)
