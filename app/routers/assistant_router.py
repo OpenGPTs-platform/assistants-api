@@ -47,8 +47,7 @@ def list_assistants(
     db_assistants = crud.get_assistants(
         db=db, limit=limit, order=order, after=after, before=before
     )
-    if not db_assistants:
-        raise HTTPException(status_code=404, detail="Assistants not found")
+
     assistants = [
         db_to_pydantic_assistant(assistant) for assistant in db_assistants
     ]

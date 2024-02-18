@@ -13,6 +13,19 @@ def openai_client():
     )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    openai_client = OpenAI(
+        base_url="http://localhost:8000",
+    )
+
+    def remove_all_assistants():
+        for assistant in openai_client.beta.assistants.list().data:
+            openai_client.beta.assistants.delete(assistant.id)
+
+    request.addfinalizer(remove_all_assistants)
+
+
 # /assistants POST
 @pytest.mark.dependency()
 def test_create_assistant(openai_client: OpenAI):
