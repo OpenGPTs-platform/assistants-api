@@ -47,3 +47,14 @@ def get_assistants(
         query = query.filter(models.Assistant.id < before)
 
     return query.limit(limit).all()
+
+
+def get_assistant_by_id(db: Session, assistant_id: str):
+    """
+    Retrieve an assistant by its ID from the database.
+    """
+    return (
+        db.query(models.Assistant)
+        .filter(models.Assistant.id == assistant_id)
+        .first()
+    )

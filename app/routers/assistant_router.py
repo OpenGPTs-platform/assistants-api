@@ -56,3 +56,14 @@ def list_assistants(
     paginated_assistants = SyncCursorPage(data=assistants)
 
     return paginated_assistants
+
+
+@router.get("/assistants/{assistant_id}", response_model=schemas.Assistant)
+def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieves an assistant by ID.
+    """
+    db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
+    if db_assistant is None:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    return db_to_pydantic_assistant(db_assistant)

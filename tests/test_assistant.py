@@ -2,6 +2,7 @@ import pytest
 from openai import OpenAI
 from openai.pagination import SyncCursorPage
 from openai.types.beta.assistant import Assistant, ToolCodeInterpreter
+from datetime import datetime
 
 
 @pytest.fixture
@@ -12,6 +13,7 @@ def openai_client():
     )
 
 
+# /assistants POST
 @pytest.mark.dependency()
 def test_create_assistant(openai_client: OpenAI):
     response = openai_client.beta.assistants.create(
@@ -38,6 +40,7 @@ def test_create_assistant(openai_client: OpenAI):
     }
 
 
+# /assistants GET
 @pytest.mark.dependency(depends=["test_create_assistant"])
 def test_list_assistants_after_creation(openai_client: OpenAI):
     response = openai_client.beta.assistants.list()
@@ -68,3 +71,25 @@ def test_list_assistants_order(openai_client: OpenAI):
     assert (
         desc_first_created_at >= asc_first_created_at
     ), "Ordering does not match expected results"
+
+
+# /assistants/{assistant_id} GET
+def test_get_assistant(openai_client: OpenAI):
+    # Assuming "test_create_assistant" creates an assistant and returns its ID
+    new_assistant = openai_client.beta.assistants.create(
+        model="gpt-4",
+        name="Example Assistant",
+    )
+
+    response = openai_client.beta.assistants.retrieve(new_assistant.id)
+
+    # Validate the response structure and data
+    assert isinstance(response, Assistant)
+    assert response.id == new_assistant.id
+    assert response.model == "gpt-4"
+    assert response.name == "Example Assistant"
+    assert response.object == "assistant"
+    assert isinstance(response.created_at, int)
+    assert datetime.utcfromtimestamp(
+        response.created_at
+    )  # Checks if `created_at` is a valid timestamp"
