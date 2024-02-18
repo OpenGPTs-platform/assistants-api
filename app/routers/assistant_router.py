@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
+from utils.tranformers import db_to_pydantic_assistant
 
 from db.database import get_db
-
 from sqlalchemy.orm import Session
 from db import crud, schemas
-
+from openai.pagination import SyncCursorPage
 
 router = APIRouter()
 
@@ -27,3 +28,31 @@ def create_assistant(
     db_assistant = crud.create_assistant(db=db, assistant=assistant)
     print("db_assistant", db_assistant)
     return db_assistant
+
+
+@router.get("/assistants", response_model=SyncCursorPage[schemas.Assistant])
+def list_assistants(
+    db: Session = Depends(get_db),
+    limit: int = Query(default=20, le=100),
+    order: str = Query(default="desc", regex="^(asc|desc)$"),
+    after: Optional[str] = None,
+    before: Optional[str] = None,
+):
+    """
+    List assistants with optional pagination and ordering.
+    - **limit**: Maximum number of results to return.
+    - **order**: Sort order based on the creation time ('asc' or 'desc').
+    - **after**: ID to start the list from (for pagination).
+    - **before**: ID to list up to (for pagination).
+    """
+    db_assistants = crud.get_assistants(
+        db=db, limit=limit, order=order, after=after, before=before
+    )
+    if not db_assistants:
+        raise HTTPException(status_code=404, detail="Assistants not found")
+    assistants = [
+        db_to_pydantic_assistant(assistant) for assistant in db_assistants
+    ]
+    paginated_assistants = SyncCursorPage(data=assistants)
+
+    return paginated_assistants

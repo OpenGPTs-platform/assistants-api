@@ -20,7 +20,7 @@ class AssistantCreate(BaseModel):
                 "name": "Math Tutor",
                 "description": "A personal math tutor assistant.",
                 "model": "gpt-4",
-                "instructions": "You are a personal math tutor. When asked a question, write and run Python code to answer the question.", # noqa
+                "instructions": "You are a personal math tutor. When asked a question, write and run Python code to answer the question.",  # noqa
                 "tools": [{"type": "code_interpreter"}],
                 "file_ids": [],
                 "metadata": {},

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 import time
-
+from sqlalchemy import desc, asc
 from . import models, schemas
 import uuid
 
@@ -27,3 +27,23 @@ def create_assistant(db: Session, assistant: schemas.AssistantCreate):
     db.commit()
     db.refresh(db_assistant)
     return db_assistant
+
+
+def get_assistants(
+    db: Session, limit: int, order: str, after: str = None, before: str = None
+):
+    query = db.query(models.Assistant)
+
+    # Apply ordering
+    if order == "desc":
+        query = query.order_by(desc(models.Assistant.created_at))
+    else:
+        query = query.order_by(asc(models.Assistant.created_at))
+
+    # Apply pagination using 'after' and 'before' cursors
+    if after:
+        query = query.filter(models.Assistant.id > after)
+    if before:
+        query = query.filter(models.Assistant.id < before)
+
+    return query.limit(limit).all()
