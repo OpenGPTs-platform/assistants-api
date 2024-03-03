@@ -102,3 +102,12 @@ def create_file(db: Session, file: FileObject):
 
 def get_file(db: Session, file_id: str):
     return db.query(models.File).filter(models.File.id == file_id).first()
+
+
+def delete_file(db: Session, file_id: str) -> bool:
+    file = db.query(models.File).filter(models.File.id == file_id).first()
+    if not file:
+        return False
+    db.delete(file)
+    db.commit()
+    return True

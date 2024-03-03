@@ -1,3 +1,4 @@
-from openai.types import FileObject
+from openai.types import FileObject, FileDeleted
 
 FileObject
+FileDeleted

@@ -26,3 +26,7 @@ def upload_file(
         purpose="assistants",
         status="uploaded",
     )
+
+
+def delete_file(minio_client: Minio, bucket_name: str, file_id: str) -> None:
+    minio_client.remove_object(bucket_name, file_id)
