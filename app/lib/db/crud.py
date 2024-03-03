@@ -98,3 +98,7 @@ def create_file(db: Session, file: FileObject):
     db.commit()
     db.refresh(db_file)
     return db_file
+
+
+def get_file(db: Session, file_id: str):
+    return db.query(models.File).filter(models.File.id == file_id).first()
