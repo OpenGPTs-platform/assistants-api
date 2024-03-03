@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from utils.tranformers import db_to_pydantic_assistant
 
-from db.database import get_db
+from lib.db.database import get_db
 from sqlalchemy.orm import Session
-from db import crud, schemas
+from lib.db import crud, schemas
 from openai.pagination import SyncCursorPage
 
 router = APIRouter()

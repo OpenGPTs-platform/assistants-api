@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 import time
 from sqlalchemy import desc, asc
+
+from lib.fs.schemas import FileObject
 from . import models, schemas
 import uuid
 
@@ -84,5 +86,28 @@ def delete_assistant(db: Session, assistant_id: str) -> bool:
     if not assistant:
         return False
     db.delete(assistant)
+    db.commit()
+    return True
+
+
+# FILE
+def create_file(db: Session, file: FileObject):
+    # save to db
+    db_file = models.File(**file.model_dump())
+    db.add(db_file)
+    db.commit()
+    db.refresh(db_file)
+    return db_file
+
+
+def get_file(db: Session, file_id: str):
+    return db.query(models.File).filter(models.File.id == file_id).first()
+
+
+def delete_file(db: Session, file_id: str) -> bool:
+    file = db.query(models.File).filter(models.File.id == file_id).first()
+    if not file:
+        return False
+    db.delete(file)
     db.commit()
     return True

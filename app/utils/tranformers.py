@@ -1,5 +1,5 @@
-from db import models
-from db import schemas
+from lib.db import models
+from lib.db import schemas
 
 
 def db_to_pydantic_assistant(
