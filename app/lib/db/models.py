@@ -25,3 +25,37 @@ class Assistant(Base):
     # # If there's a relationship with users (assuming one assistant can belong to one user) # noqa
     # user_id = Column(String, ForeignKey('users.id'))
     # owner = relationship("User", back_populates="user_gpts")
+
+
+class FilePurpose(Enum):
+    FINE_TUNE = "fine-tune"
+    ASSISTANTS = "assistants"
+
+
+class FileStatus(Enum):
+    UPLOADED = "uploaded"
+    PROCESSED = "processed"
+    ERROR = "error"
+
+
+class File(Base):
+    __tablename__ = "files"
+
+    id = Column(String, primary_key=True, index=True)
+    bytes = Column(Integer, nullable=False)
+    created_at = Column(Integer, nullable=False)
+    filename = Column(String(256), nullable=False)
+    object = Column(
+        Enum("file", name="file_object"),
+        nullable=False,
+        default="file",
+    )
+    purpose = Column(
+        Enum("assistants", name="file_purpose"),
+        nullable=False,
+    )
+    status = Column(
+        Enum("uploaded", name="file_status"),
+        nullable=False,
+    )
+    status_details = Column(String(512), nullable=True)

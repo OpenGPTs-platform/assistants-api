@@ -1,0 +1,29 @@
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from minio import Minio
+from lib.fs.actions import upload_file
+from lib.fs.store import minio_client, BUCKET_NAME
+from lib.db.database import get_db
+from typing_extensions import Literal
+from sqlalchemy.orm import Session
+from lib.db import crud
+
+router = APIRouter()
+
+
+@router.post("/files")
+async def create_file(
+    file: UploadFile = File(...),
+    purpose: Literal["fine-tune", "assistants"] = File(...),
+    db: Session = Depends(get_db),
+    minio_client: Minio = Depends(minio_client),
+):
+    if purpose not in ["fine-tune", "assistants"]:
+        raise HTTPException(status_code=400, detail="Invalid purpose")
+
+    uploaded_file = upload_file(
+        minio_client=minio_client, bucket_name=BUCKET_NAME, file=file
+    )
+
+    crud.create_file(db=db, file=uploaded_file)
+
+    return uploaded_file

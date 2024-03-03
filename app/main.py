@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from routers import (
     assistant_router,
+    file_router,
 )
 from lib.db.database import engine
 from lib.db import models
@@ -41,3 +42,4 @@ app.add_middleware(
 models.Base.metadata.create_all(bind=engine)
 
 app.include_router(assistant_router.router)
+app.include_router(file_router.router)
