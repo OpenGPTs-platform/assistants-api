@@ -52,3 +52,8 @@ class MessageContent(BaseModel):
 class ThreadCreate(BaseModel):
     messages: Optional[List[MessageContent]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class ThreadUpdate(BaseModel):
+    messages: Optional[List[MessageContent]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})

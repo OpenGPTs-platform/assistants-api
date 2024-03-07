@@ -135,3 +135,20 @@ def get_thread(db: Session, thread_id: str):
     return (
         db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     )
+
+
+def update_thread(db: Session, thread_id: str, thread_data: dict):
+    db_thread = (
+        db.query(models.Thread).filter(models.Thread.id == thread_id).first()
+    )
+    if db_thread:
+        for key, value in thread_data.items():
+            if value:
+                if key == "metadata":
+                    setattr(db_thread, "_metadata", value)
+                else:
+                    setattr(db_thread, key, value)
+        db.commit()
+        db.refresh(db_thread)
+        return db_thread
+    return None

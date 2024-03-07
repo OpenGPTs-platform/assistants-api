@@ -50,3 +50,13 @@ def test_get_thread(openai_client: OpenAI, thread_id: str):
     assert response.object == "thread"
     assert response.created_at is not None
     assert response.metadata == metadata
+
+
+def test_update_thread_metadata(openai_client: OpenAI, thread_id: str):
+    updated_metadata = {"new_key": "new_value"}
+    response = openai_client.beta.threads.update(
+        thread_id, metadata=updated_metadata
+    )
+    assert isinstance(response, Thread)
+    assert response.id == thread_id
+    assert response.metadata == updated_metadata

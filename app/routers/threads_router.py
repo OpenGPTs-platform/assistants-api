@@ -34,3 +34,23 @@ def get_thread(thread_id: str, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Thread not found")
 
     return db_to_pydantic_thread(db_thread)
+
+
+@router.post("/threads/{thread_id}", response_model=schemas.Thread)
+def update_thread(
+    thread_id: str,
+    thread_data: schemas.ThreadUpdate,
+    db: Session = Depends(database.get_db),
+):
+    """
+    Update a specific thread by its ID.
+    - **thread_id**: The ID of the thread to update.
+    - **metadata**: Set of 16 key-value pairs that can be attached to the thread.
+    """
+    db_thread = crud.update_thread(
+        db, thread_id, thread_data.model_dump(exclude_none=True)
+    )
+    if db_thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return db_to_pydantic_thread(db_thread)
