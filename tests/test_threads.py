@@ -23,6 +23,14 @@ def assistant_id(openai_client: OpenAI):
     return response.id
 
 
+@pytest.fixture
+def thread_id(openai_client: OpenAI):
+    thread_metadata = {"example_key": "example_value"}
+    response = openai_client.beta.threads.create(metadata=thread_metadata)
+    return response.id
+
+
+@pytest.mark.dependency()
 def test_create_thread_without_messages(openai_client: OpenAI):
     thread_metadata = {"example_key": "example_value"}
     response = openai_client.beta.threads.create(metadata=thread_metadata)
@@ -31,3 +39,14 @@ def test_create_thread_without_messages(openai_client: OpenAI):
     assert response.object == "thread"
     assert response.created_at is not None
     assert response.metadata == thread_metadata
+
+
+@pytest.mark.dependency(depends=["test_create_thread_without_messages"])
+def test_get_thread(openai_client: OpenAI, thread_id: str):
+    metadata = {"example_key": "example_value"}
+    response = openai_client.beta.threads.retrieve(thread_id=thread_id)
+    assert isinstance(response, Thread)
+    assert response.id == thread_id
+    assert response.object == "thread"
+    assert response.created_at is not None
+    assert response.metadata == metadata

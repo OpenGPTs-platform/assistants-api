@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from lib.db import schemas, database, crud
+from utils.tranformers import db_to_pydantic_thread
 
 router = APIRouter()
 
@@ -14,11 +15,22 @@ def create_thread(
     - **metadata**: Set of 16 key-value pairs that can be attached to the thread.
     """
 
-    db_thread = crud.create_thread(db, thread_data)
+    database.reset_db()
 
-    return schemas.Thread(
-        id=db_thread.id,
-        created_at=db_thread.created_at,
-        metadata=db_thread.metadata,
-        object="thread",
-    )
+    db_thread = crud.create_thread(db, thread_data)
+    print("db_thread", db_thread.__dict__)
+
+    return db_to_pydantic_thread(db_thread)
+
+
+@router.get("/threads/{thread_id}", response_model=schemas.Thread)
+def get_thread(thread_id: str, db: Session = Depends(database.get_db)):
+    """
+    Retrieve a specific thread by its ID.
+    - **thread_id**: The ID of the thread to retrieve.
+    """
+    db_thread = crud.get_thread(db, thread_id=thread_id)
+    if db_thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return db_to_pydantic_thread(db_thread)

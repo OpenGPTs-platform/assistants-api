@@ -67,6 +67,7 @@ class Thread(Base):
 
     id = Column(String, primary_key=True, index=True)
     created_at = Column(Integer, nullable=False)
+    object = Column(String, nullable=False, default="thread")
     _metadata = Column("metadata", JSON, nullable=True)
 
 
