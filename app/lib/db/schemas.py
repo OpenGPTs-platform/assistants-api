@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta import Thread
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
 Assistant
 AssistantDeleted
+Thread
 
 
 class AssistantCreate(BaseModel):
@@ -38,3 +40,15 @@ class AssistantUpdate(BaseModel):
     tools: Optional[List[Tool]] = Field(None)
     metadata: Optional[Dict[str, Any]] = Field(None)
     file_ids: Optional[List[str]] = Field(None)
+
+
+class MessageContent(BaseModel):
+    role: str
+    content: str
+    file_ids: Optional[List[str]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class ThreadCreate(BaseModel):
+    messages: Optional[List[MessageContent]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})

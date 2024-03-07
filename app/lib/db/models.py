@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, JSON, Enum
+from sqlalchemy import ARRAY, Column, ForeignKey, String, Integer, JSON, Enum
+from sqlalchemy.orm import relationship
 from .database import Base
 
 
@@ -59,3 +60,36 @@ class File(Base):
         nullable=False,
     )
     status_details = Column(String(512), nullable=True)
+
+
+class Thread(Base):
+    __tablename__ = "threads"
+
+    id = Column(String, primary_key=True, index=True)
+    created_at = Column(Integer, nullable=False)
+    _metadata = Column("metadata", JSON, nullable=True)
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(String, primary_key=True, index=True)
+    object = Column(String, nullable=False, default="thread.message")
+    created_at = Column(Integer, nullable=False)
+    thread_id = Column(String, ForeignKey('threads.id'))
+    role = Column(Enum('user', 'assistant', name='role_types'), nullable=False)
+    content = Column(
+        ARRAY(JSON), nullable=False
+    )  # To store structured content including text and images
+    assistant_id = Column(String, nullable=True)
+    run_id = Column(String, nullable=True)
+    file_ids = Column(ARRAY(String), nullable=True)  # Stores up to 10 file IDs
+    _metadata = Column("metadata", JSON, nullable=True)
+
+    # Establish a relationship to the Thread model
+    thread = relationship("Thread", back_populates="messages")
+
+
+Thread.messages = relationship(
+    "Message", order_by=Message.id, back_populates="thread"
+)

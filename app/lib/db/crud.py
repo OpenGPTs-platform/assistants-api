@@ -111,3 +111,18 @@ def delete_file(db: Session, file_id: str) -> bool:
     db.delete(file)
     db.commit()
     return True
+
+
+# THREAD
+def create_thread(db: Session, thread_data: schemas.ThreadCreate):
+    # Assume the ThreadCreate schema and Thread model are properly defined
+    new_thread = models.Thread(
+        id=str(uuid.uuid4()),
+        metadata=thread_data.metadata,
+        created_at=int(time.time()),  # Using UNIX timestamp for created_at
+    )
+    # If your thread includes messages, you should handle their creation here
+    db.add(new_thread)
+    db.commit()
+    db.refresh(new_thread)
+    return new_thread
