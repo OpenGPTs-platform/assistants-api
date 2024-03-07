@@ -2,11 +2,13 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
 from openai.types.beta import Thread
+from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
 Assistant
 AssistantDeleted
 Thread
+ThreadDeleted
 
 
 class AssistantCreate(BaseModel):

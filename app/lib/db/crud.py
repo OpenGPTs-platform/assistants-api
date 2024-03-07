@@ -152,3 +152,15 @@ def update_thread(db: Session, thread_id: str, thread_data: dict):
         db.refresh(db_thread)
         return db_thread
     return None
+
+
+def delete_thread(db: Session, thread_id: str) -> bool:
+    thread = (
+        db.query(models.Thread).filter(models.Thread.id == thread_id).first()
+    )
+    print("thread in DB", thread, thread_id)
+    if not thread:
+        return False
+    db.delete(thread)
+    db.commit()
+    return True

@@ -15,10 +15,7 @@ def create_thread(
     - **metadata**: Set of 16 key-value pairs that can be attached to the thread.
     """
 
-    database.reset_db()
-
     db_thread = crud.create_thread(db, thread_data)
-    print("db_thread", db_thread.__dict__)
 
     return db_to_pydantic_thread(db_thread)
 
@@ -54,3 +51,18 @@ def update_thread(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     return db_to_pydantic_thread(db_thread)
+
+
+@router.delete("/threads/{thread_id}", response_model=schemas.ThreadDeleted)
+def delete_thread(thread_id: str, db: Session = Depends(database.get_db)):
+    """
+    Delete a specific thread by its ID.
+    - **thread_id**: The ID of the thread to delete.
+    """
+    is_deleted = crud.delete_thread(db, thread_id)
+    if not is_deleted:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return schemas.ThreadDeleted(
+        id=thread_id, deleted=is_deleted, object="thread.deleted"
+    )
