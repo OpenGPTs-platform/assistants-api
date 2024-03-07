@@ -4,12 +4,15 @@ from openai.pagination import SyncCursorPage
 from openai.types.beta.assistant import Assistant, ToolCodeInterpreter
 from datetime import datetime
 
+# import os
+
 
 @pytest.fixture
 def openai_client():
     # Replace "your_api_key_here" with your actual OpenAI API key
     return OpenAI(
         base_url="http://localhost:8000",
+        # api_key=os.getenv("OPENAI_API_KEY"),
     )
 
 

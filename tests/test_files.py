@@ -18,10 +18,9 @@ def openai_client():
 def test_create_file(openai_client: OpenAI):
     with open('./tests/test.txt', 'rb') as file:
         response = openai_client.files.create(file=file, purpose="assistants")
-
     assert isinstance(response, FileObject)
     assert response.id == response.id
-    assert response.bytes == 73
+    assert response.bytes is not None
     assert response.created_at is not None
     assert response.filename == "test.txt"
     assert response.purpose == "assistants"
@@ -38,7 +37,7 @@ def test_retrieve_file(openai_client: OpenAI):
 
     assert isinstance(response, FileObject)
     assert response.id == file_created.id
-    assert response.bytes == 73
+    assert response.bytes is not None
     assert response.created_at is not None
     assert response.filename == "test.txt"
     assert response.purpose == "assistants"

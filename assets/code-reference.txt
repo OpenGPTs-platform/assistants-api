@@ -1,0 +1,199 @@
+Below is a portion of a test for you to reference:
+import pytest
+from openai import OpenAI
+from openai.pagination import SyncCursorPage
+from openai.types.beta.assistant import Assistant, ToolCodeInterpreter
+from datetime import datetime
+
+# import os
+
+
+@pytest.fixture
+def openai_client():
+    # Replace "your_api_key_here" with your actual OpenAI API key
+    return OpenAI(
+        base_url="http://localhost:8000",
+        # api_key=os.getenv("OPENAI_API_KEY"),
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    openai_client = OpenAI(
+        base_url="http://localhost:8000",
+    )
+
+    def remove_all_assistants():
+        for assistant in openai_client.beta.assistants.list().data:
+            openai_client.beta.assistants.delete(assistant.id)
+
+    request.addfinalizer(remove_all_assistants)
+
+
+# /assistants POST
+@pytest.mark.dependency()
+def test_create_assistant(openai_client: OpenAI):
+    openai_client.beta.threads.runs.steps.list()
+    response = openai_client.beta.assistants.create(
+        instructions="You are an AI designed to provide examples.",
+        name="Example Assistant",
+        tools=[{"type": "code_interpreter"}],
+        model="gpt-4",
+        metadata={"str": "string", "int": 1, "bool": True, "list": [1, 2, 3]},
+    )
+    assert isinstance(response, Assistant)
+    assert response.id is not None
+    assert response.created_at is not None
+    assert (
+        response.instructions == "You are an AI designed to provide examples."
+    )
+    assert response.name == "Example Assistant"
+    assert isinstance(response.tools[0], ToolCodeInterpreter)
+    assert response.model == "gpt-4"
+    assert response.metadata == {
+        "str": "string",
+        "int": 1,
+        "bool": True,
+        "list": [1, 2, 3],
+    }
+...
+
+Below is a portion of a router with endpoints for you to reference:
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
+from utils.tranformers import db_to_pydantic_assistant
+
+from lib.db.database import get_db
+from sqlalchemy.orm import Session
+from lib.db import crud, schemas
+from openai.pagination import SyncCursorPage
+
+router = APIRouter()
+
+
+@router.post("/assistants", response_model=schemas.Assistant)
+def create_assistant(
+    assistant: schemas.AssistantCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new assistant.
+    - **model**: ID of the model to use.
+    - **name**: The name of the assistant.
+    - **description**: The description of the assistant.
+    - **instructions**: The system instructions that the assistant uses.
+    - **tools**: A list of tools enabled on the assistant.
+    - **file_ids**: A list of file IDs attached to this assistant.
+    - **metadata**: Set of 16 key-value pairs that can be attached to the assistant.
+    """
+    db_assistant = crud.create_assistant(db=db, assistant=assistant)
+    return db_assistant
+
+
+@router.get("/assistants", response_model=SyncCursorPage[schemas.Assistant])
+def list_assistants(
+    db: Session = Depends(get_db),
+    limit: int = Query(default=20, le=100),
+    order: str = Query(default="desc", regex="^(asc|desc)$"),
+    after: Optional[str] = None,
+    before: Optional[str] = None,
+):
+    """
+    List assistants with optional pagination and ordering.
+    - **limit**: Maximum number of results to return.
+    - **order**: Sort order based on the creation time ('asc' or 'desc').
+    - **after**: ID to start the list from (for pagination).
+    - **before**: ID to list up to (for pagination).
+    """
+    db_assistants = crud.get_assistants(
+        db=db, limit=limit, order=order, after=after, before=before
+    )
+
+    assistants = [
+        db_to_pydantic_assistant(assistant) for assistant in db_assistants
+    ]
+    paginated_assistants = SyncCursorPage(data=assistants)
+
+    return paginated_assistants
+...
+
+Below is a portion of crud for you to reference:
+from sqlalchemy.orm import Session
+import time
+from sqlalchemy import desc, asc
+
+from lib.fs.schemas import FileObject
+from . import models, schemas
+import uuid
+
+
+# ASSISTANT
+def create_assistant(db: Session, assistant: schemas.AssistantCreate):
+    tools = [tool.model_dump() for tool in assistant.tools]
+    # Generate a unique ID for the new assistant
+    db_assistant = models.Assistant(
+        id=str(uuid.uuid4()),
+        object="assistant",
+        name=assistant.name,
+        description=assistant.description,
+        model=assistant.model,
+        instructions=assistant.instructions,
+        tools=tools,  # Ensure your model and schema correctly handle serialization/deserialization # noqa
+        file_ids=assistant.file_ids,
+        metadata=assistant.metadata,
+        created_at=int(time.time()),  # Assuming UNIX timestamp for created_at
+        # Include other fields as necessary
+    )
+    db.add(db_assistant)
+    db.commit()
+    db.refresh(db_assistant)
+    return db_assistant
+...
+
+Below is a portion of the schemas for you to reference:
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta.assistant_deleted import AssistantDeleted
+
+Assistant
+AssistantDeleted
+
+
+class AssistantCreate(BaseModel):
+    name: Optional[str] = Field(None, max_length=256)
+    description: Optional[str] = Field(None, max_length=512)
+    model: str
+    instructions: Optional[str] = Field(None, max_length=32768)
+    tools: List[Tool] = []
+    file_ids: List[str] = []
+    metadata: Optional[Dict[str, Any]] = None
+
+Below is an example of a model for you to reference:
+from sqlalchemy import Column, String, Integer, JSON, Enum
+from .database import Base
+
+
+class Assistant(Base):
+    __tablename__ = "assistants"
+
+    id = Column(String, primary_key=True, index=True)
+    object = Column(
+        Enum("assistant", name="assistant_object"),
+        nullable=False,
+        default="assistant",
+    )  # Since "object" is a reserved keyword in Python, consider renaming or handle appropriately # noqa
+    created_at = Column(Integer, nullable=False)
+    name = Column(String(256), nullable=True)
+    description = Column(String(512), nullable=True)
+    model = Column(String, nullable=False)
+    instructions = Column(String(32768), nullable=True)
+    tools = Column(
+        JSON, default=[]
+    )  # Ensure your database supports JSON type; otherwise, consider storing as String and serializing/deserializing # noqa
+    file_ids = Column(JSON, default=[])
+    _metadata = Column("metadata", JSON, nullable=True)
+
+    # # If there's a relationship with users (assuming one assistant can belong to one user) # noqa
+    # user_id = Column(String, ForeignKey('users.id'))
+    # owner = relationship("User", back_populates="user_gpts")
