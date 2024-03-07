@@ -7,6 +7,8 @@ def db_to_pydantic_assistant(
 ) -> schemas.Assistant:
     assistant_dict = db_assistant.__dict__
     del assistant_dict["_sa_instance_state"]
+    assistant_dict["metadata"] = assistant_dict["_metadata"]
+    del assistant_dict["_metadata"]
     return schemas.Assistant(**assistant_dict)
 
 

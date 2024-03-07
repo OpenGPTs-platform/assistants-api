@@ -20,7 +20,7 @@ def create_assistant(db: Session, assistant: schemas.AssistantCreate):
         instructions=assistant.instructions,
         tools=tools,  # Ensure your model and schema correctly handle serialization/deserialization # noqa
         file_ids=assistant.file_ids,
-        metadata=assistant.metadata,
+        _metadata=assistant.metadata,
         created_at=int(time.time()),  # Assuming UNIX timestamp for created_at
         # Include other fields as necessary
     )
@@ -70,7 +70,10 @@ def update_assistant(db: Session, assistant_id: str, assistant_update: dict):
     if db_assistant:
         for key, value in assistant_update.items():
             if value:
-                setattr(db_assistant, key, value)
+                if key == "metadata":
+                    setattr(db_assistant, "_metadata", value)
+                else:
+                    setattr(db_assistant, key, value)
         db.commit()
         db.refresh(db_assistant)
         return db_assistant

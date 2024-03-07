@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from utils.tranformers import db_to_pydantic_assistant
 
-from lib.db.database import get_db
+from lib.db.database import get_db, reset_db
 from sqlalchemy.orm import Session
 from lib.db import crud, schemas
 from openai.pagination import SyncCursorPage
@@ -25,8 +25,10 @@ def create_assistant(
     - **file_ids**: A list of file IDs attached to this assistant.
     - **metadata**: Set of 16 key-value pairs that can be attached to the assistant.
     """
+    reset_db()
+
     db_assistant = crud.create_assistant(db=db, assistant=assistant)
-    return db_assistant
+    return db_to_pydantic_assistant(db_assistant)
 
 
 @router.get("/assistants", response_model=SyncCursorPage[schemas.Assistant])
