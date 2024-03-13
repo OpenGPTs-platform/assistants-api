@@ -147,6 +147,9 @@ def create_thread(db: Session, thread_data: schemas.ThreadCreate):
     )
     # If your thread includes messages, you should handle their creation here
     db.add(new_thread)
+    if thread_data.messages:
+        for message in thread_data.messages:
+            create_message(db, new_thread.id, message)
     db.commit()
     db.refresh(new_thread)
     return new_thread
@@ -188,7 +191,7 @@ def delete_thread(db: Session, thread_id: str) -> bool:
 
 # MESSAGE
 def create_message(
-    db: Session, thread_id: str, message: schemas.ThreadMessageCreate
+    db: Session, thread_id: str, message: schemas.MessageContent
 ):
     # Create a new Message object
     db_message = models.Message(

@@ -13,7 +13,7 @@ Assistant
 AssistantDeleted
 Thread
 ThreadDeleted
-ThreadMessage
+ThreadMessage  # database stored message, typically used for output
 SyncCursorPage
 
 
@@ -50,7 +50,7 @@ class AssistantUpdate(BaseModel):
     file_ids: Optional[List[str]] = Field(None)
 
 
-class MessageContent(BaseModel):
+class MessageContent(BaseModel):  # input for message data
     role: str
     content: str
     file_ids: Optional[List[str]] = Field(default=[])
@@ -65,24 +65,3 @@ class ThreadCreate(BaseModel):
 class ThreadUpdate(BaseModel):
     messages: Optional[List[MessageContent]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
-
-
-class ThreadMessageCreate(BaseModel):
-    role: str = Field(
-        ...,
-        description="The role of the entity that is creating the message. Currently only `user` is supported.",  # noqa
-    )
-    content: str = Field(
-        ...,
-        min_length=1,
-        max_length=32768,
-        description="The content of the message.",
-    )
-    file_ids: Optional[List[str]] = Field(
-        default=[],
-        description="A list of file IDs that the message should use.",
-    )
-    metadata: Optional[Dict[str, str]] = Field(
-        default=None,
-        description="Set of key-value pairs for additional information.",
-    )

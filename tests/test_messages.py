@@ -1,6 +1,7 @@
 import pytest
 from openai import OpenAI
 import os
+import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 
@@ -58,6 +59,9 @@ def test_get_messages_in_thread(openai_client: OpenAI, thread_id: str):
     openai_client.beta.threads.messages.create(
         thread_id=thread_id, **message_data_1
     )
+    time.sleep(
+        1
+    )  # TODO: remove this. It adds a gap in btween created_at to ensure a difference in order # noqa
     openai_client.beta.threads.messages.create(
         thread_id=thread_id, **message_data_2
     )
@@ -72,3 +76,32 @@ def test_get_messages_in_thread(openai_client: OpenAI, thread_id: str):
     assert response.data[1].content[0].text.value == message_data_1["content"]
     assert response.data[1].file_ids == message_data_1["file_ids"]
     assert response.data[1].metadata == message_data_1["metadata"]
+
+
+@pytest.mark.dependency(
+    depends=["test_create_message_in_thread", "test_get_messages_in_thread"]
+)
+def test_create_thread_with_message(openai_client: OpenAI):
+    # Create a thread with a message
+    message_data = {
+        "role": "user",
+        "content": "Hello, World!",
+        "file_ids": [],
+        "metadata": {"example_key": "example_value"},
+    }
+
+    create_thread = openai_client.beta.threads.create(messages=[message_data])
+
+    assert create_thread.id is not None
+
+    get_messages = openai_client.beta.threads.messages.list(
+        thread_id=create_thread.id
+    )
+
+    assert len(get_messages.data) == 1
+    assert get_messages.data[0].role == message_data["role"]
+    assert (
+        get_messages.data[0].content[0].text.value == message_data["content"]
+    )
+    assert get_messages.data[0].file_ids == message_data["file_ids"]
+    assert get_messages.data[0].metadata == message_data["metadata"]

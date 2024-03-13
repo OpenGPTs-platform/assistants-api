@@ -12,7 +12,7 @@ router = APIRouter()
 )
 def create_message_in_thread(
     thread_id: str,
-    message: schemas.ThreadMessageCreate,
+    message: schemas.MessageContent,
     db: Session = Depends(database.get_db),
 ):
     db_thread = crud.get_thread(db, thread_id=thread_id)

@@ -16,7 +16,6 @@ def create_thread(
     """
 
     db_thread = crud.create_thread(db, thread_data)
-
     return db_to_pydantic_thread(db_thread)
 
 
