@@ -7,11 +7,14 @@ from openai.types.beta.threads import ThreadMessage
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
+from openai.pagination import SyncCursorPage
+
 Assistant
 AssistantDeleted
 Thread
 ThreadDeleted
 ThreadMessage
+SyncCursorPage
 
 
 class AssistantCreate(BaseModel):

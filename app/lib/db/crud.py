@@ -37,15 +37,36 @@ def get_assistants(
 
     # Apply ordering
     if order == "desc":
-        query = query.order_by(desc(models.Assistant.created_at))
+        query = query.order_by(
+            desc(models.Assistant.created_at), desc(models.Assistant.id)
+        )
     else:
-        query = query.order_by(asc(models.Assistant.created_at))
+        query = query.order_by(
+            asc(models.Assistant.created_at), asc(models.Assistant.id)
+        )
 
     # Apply pagination using 'after' and 'before' cursors
     if after:
-        query = query.filter(models.Assistant.id > after)
+        last_seen_assistant = (
+            db.query(models.Assistant)
+            .filter(models.Assistant.id == after)
+            .first()
+        )
+        if last_seen_assistant:
+            query = query.filter(
+                models.Assistant.created_at >= last_seen_assistant.created_at
+            )
+
     if before:
-        query = query.filter(models.Assistant.id < before)
+        first_seen_assistant = (
+            db.query(models.Assistant)
+            .filter(models.Assistant.id == before)
+            .first()
+        )
+        if first_seen_assistant:
+            query = query.filter(
+                models.Assistant.created_at <= first_seen_assistant.created_at
+            )
 
     return query.limit(limit).all()
 
@@ -158,7 +179,6 @@ def delete_thread(db: Session, thread_id: str) -> bool:
     thread = (
         db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     )
-    print("thread in DB", thread, thread_id)
     if not thread:
         return False
     db.delete(thread)
@@ -193,3 +213,47 @@ def create_message(
     db.refresh(db_message)
 
     return db_message
+
+
+def get_messages(
+    db: Session,
+    thread_id: str,
+    limit: int,
+    order: str,
+    after: str,
+    before: str,
+):
+    query = db.query(models.Message).filter(
+        models.Message.thread_id == thread_id
+    )
+
+    if order == "asc":
+        query = query.order_by(
+            asc(models.Message.created_at), asc(models.Message.id)
+        )
+    else:
+        query = query.order_by(
+            desc(models.Message.created_at), desc(models.Message.id)
+        )
+
+    if after:
+        last_seen_message = (
+            db.query(models.Message).filter(models.Message.id == after).first()
+        )
+        if last_seen_message:
+            query = query.filter(
+                models.Message.created_at >= last_seen_message.created_at
+            )
+
+    if before:
+        first_seen_message = (
+            db.query(models.Message)
+            .filter(models.Message.id == before)
+            .first()
+        )
+        if first_seen_message:
+            query = query.filter(
+                models.Message.created_at <= first_seen_message.created_at
+            )
+
+    return query.limit(limit).all()

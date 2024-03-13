@@ -5,7 +5,6 @@ from utils.tranformers import db_to_pydantic_assistant
 from lib.db.database import get_db
 from sqlalchemy.orm import Session
 from lib.db import crud, schemas
-from openai.pagination import SyncCursorPage
 
 router = APIRouter()
 
@@ -30,7 +29,9 @@ def create_assistant(
     return db_to_pydantic_assistant(db_assistant)
 
 
-@router.get("/assistants", response_model=SyncCursorPage[schemas.Assistant])
+@router.get(
+    "/assistants", response_model=schemas.SyncCursorPage[schemas.Assistant]
+)
 def list_assistants(
     db: Session = Depends(get_db),
     limit: int = Query(default=20, le=100),
@@ -52,7 +53,7 @@ def list_assistants(
     assistants = [
         db_to_pydantic_assistant(assistant) for assistant in db_assistants
     ]
-    paginated_assistants = SyncCursorPage(data=assistants)
+    paginated_assistants = schemas.SyncCursorPage(data=assistants)
 
     return paginated_assistants
 
