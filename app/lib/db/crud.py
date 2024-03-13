@@ -164,3 +164,32 @@ def delete_thread(db: Session, thread_id: str) -> bool:
     db.delete(thread)
     db.commit()
     return True
+
+
+# MESSAGE
+def create_message(
+    db: Session, thread_id: str, message: schemas.ThreadMessageCreate
+):
+    # Create a new Message object
+    db_message = models.Message(
+        id=str(uuid.uuid4()),
+        thread_id=thread_id,
+        object="thread.message",
+        role=message.role,
+        content=[
+            {
+                "type": "text",
+                "text": {"annotations": [], "value": message.content},
+            }
+        ],  # TODO: no idea what annotations does
+        created_at=int(time.time()),
+        file_ids=message.file_ids or [],
+        _metadata=message.metadata or {},
+    )
+
+    # Add the new message to the session and commit
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+
+    return db_message

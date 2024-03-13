@@ -14,16 +14,6 @@ def openai_client():
 
 
 @pytest.fixture
-def assistant_id(openai_client: OpenAI):
-    response = openai_client.beta.assistants.create(
-        instructions="Speak like shakespeare",
-        name="Shakespeare",
-        model="gpt-4",
-    )
-    return response.id
-
-
-@pytest.fixture
 def thread_id(openai_client: OpenAI):
     thread_metadata = {"example_key": "example_value"}
     response = openai_client.beta.threads.create(metadata=thread_metadata)

@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
 from openai.types.beta import Thread
+from openai.types.beta.threads import ThreadMessage
+
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
@@ -9,6 +11,7 @@ Assistant
 AssistantDeleted
 Thread
 ThreadDeleted
+ThreadMessage
 
 
 class AssistantCreate(BaseModel):
@@ -59,3 +62,24 @@ class ThreadCreate(BaseModel):
 class ThreadUpdate(BaseModel):
     messages: Optional[List[MessageContent]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class ThreadMessageCreate(BaseModel):
+    role: str = Field(
+        ...,
+        description="The role of the entity that is creating the message. Currently only `user` is supported.",  # noqa
+    )
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=32768,
+        description="The content of the message.",
+    )
+    file_ids: Optional[List[str]] = Field(
+        default=[],
+        description="A list of file IDs that the message should use.",
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Set of key-value pairs for additional information.",
+    )
