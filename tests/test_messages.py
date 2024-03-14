@@ -137,3 +137,63 @@ def test_get_specific_message_in_thread(openai_client: OpenAI, thread_id: str):
     assert retrieved_message.metadata == message_data["metadata"]
 
     # Optionally, cleanup by deleting the message and thread if necessary
+
+
+@pytest.mark.dependency(
+    depends=["test_create_message_in_thread", "test_get_messages_in_thread"]
+)
+def test_modify_message_in_thread(openai_client: OpenAI, thread_id: str):
+    # Create a message in the thread for testing
+    message_data = {
+        "role": "user",
+        "content": "Initial message content",
+        "file_ids": [],
+        "metadata": {},
+    }
+    message_response = openai_client.beta.threads.messages.create(
+        thread_id=thread_id, **message_data
+    )
+    message_id = message_response.id
+
+    retrieved_message = openai_client.beta.threads.messages.retrieve(
+        thread_id=thread_id, message_id=message_id
+    )
+
+    assert retrieved_message.id == message_id
+    assert retrieved_message.thread_id == thread_id
+    assert retrieved_message.role == message_data["role"]
+    assert retrieved_message.content[0].text.value == message_data["content"]
+    assert retrieved_message.file_ids == message_data["file_ids"]
+    assert retrieved_message.metadata == message_data["metadata"]
+
+    # Data for modification
+    updated_metadata = {"modified": "true", "user": "abc123"}
+
+    # Modify the message
+    modified_message = openai_client.beta.threads.messages.update(
+        thread_id=thread_id,
+        message_id=message_id,
+        metadata=updated_metadata,
+    )
+
+    assert modified_message.id == message_id
+    assert modified_message.thread_id == thread_id
+    assert modified_message.role == message_data["role"]
+    assert modified_message.content[0].text.value == message_data["content"]
+    assert modified_message.file_ids == message_data["file_ids"]
+    assert modified_message.metadata == updated_metadata
+
+    retrieved_updated_message = openai_client.beta.threads.messages.retrieve(
+        thread_id=thread_id, message_id=message_id
+    )
+
+    # Verify the response
+    assert retrieved_updated_message.id == message_id
+    assert retrieved_updated_message.thread_id == thread_id
+    assert retrieved_updated_message.role == message_data["role"]
+    assert (
+        retrieved_updated_message.content[0].text.value
+        == message_data["content"]
+    )
+    assert retrieved_updated_message.file_ids == message_data["file_ids"]
+    assert retrieved_updated_message.metadata == updated_metadata

@@ -271,3 +271,29 @@ def get_message_by_id(db: Session, thread_id: str, message_id: str):
         )
         .first()
     )
+
+
+def update_message(
+    db: Session, thread_id: str, message_id: str, message_update: dict
+):
+    db_message = (
+        db.query(models.Message)
+        .filter(
+            models.Message.id == message_id,
+            models.Message.thread_id == thread_id,
+        )
+        .first()
+    )
+    if db_message:
+        for key, value in message_update.items():
+            if (
+                value is not None
+            ):  # Allowing updates with falsy values like 0 or False
+                if key == "metadata":
+                    setattr(db_message, "_metadata", value)
+                else:
+                    setattr(db_message, key, value)
+        db.commit()
+        db.refresh(db_message)
+        return db_message
+    return None

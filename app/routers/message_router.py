@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
 from typing import Optional
 from sqlalchemy.orm import Session
 from lib.db import crud, schemas, database
@@ -78,3 +78,31 @@ def get_message(
     if not message_db:
         raise HTTPException(status_code=404, detail="Message not found")
     return db_to_pydantic_message(message_db)
+
+
+@router.post(
+    "/threads/{thread_id}/messages/{message_id}",
+    response_model=schemas.ThreadMessage,
+)
+def modify_message(
+    thread_id: str = Path(
+        ..., description="The ID of the thread to which this message belongs."
+    ),
+    message_id: str = Path(
+        ..., description="The ID of the message to modify."
+    ),
+    update_data: schemas.MessageUpdate = Body(...),
+    db: Session = Depends(database.get_db),
+):
+    """
+    Modifies a message.
+    - **thread_id**: The ID of the thread.
+    - **message_id**: The ID of the message to modify.
+    - **update_data**: Data for updating the message.
+    """
+    db_message = crud.update_message(
+        db, thread_id, message_id, update_data.model_dump(exclude_none=True)
+    )
+    if db_message is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return db_to_pydantic_message(db_message)
