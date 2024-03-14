@@ -1,10 +1,20 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta import Thread
+from openai.types.beta.threads import ThreadMessage
+
+from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
+
+from openai.pagination import SyncCursorPage
 
 Assistant
 AssistantDeleted
+Thread
+ThreadDeleted
+ThreadMessage  # database stored message, typically used for output
+SyncCursorPage
 
 
 class AssistantCreate(BaseModel):
@@ -38,3 +48,24 @@ class AssistantUpdate(BaseModel):
     tools: Optional[List[Tool]] = Field(None)
     metadata: Optional[Dict[str, Any]] = Field(None)
     file_ids: Optional[List[str]] = Field(None)
+
+
+class MessageContent(BaseModel):  # input for message data
+    role: str
+    content: str
+    file_ids: Optional[List[str]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class ThreadCreate(BaseModel):
+    messages: Optional[List[MessageContent]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class ThreadUpdate(BaseModel):
+    messages: Optional[List[MessageContent]] = Field(default=[])
+    metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class MessageUpdate(BaseModel):
+    metadata: Optional[Dict[str, str]] = Field(default={})
