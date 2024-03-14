@@ -260,3 +260,14 @@ def get_messages(
             )
 
     return query.limit(limit).all()
+
+
+def get_message_by_id(db: Session, thread_id: str, message_id: str):
+    return (
+        db.query(models.Message)
+        .filter(
+            models.Message.id == message_id,
+            models.Message.thread_id == thread_id,
+        )
+        .first()
+    )

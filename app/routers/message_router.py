@@ -56,3 +56,25 @@ def get_messages_in_thread(
     paginated_messages = schemas.SyncCursorPage(data=messages)
 
     return paginated_messages
+
+
+@router.get(
+    "/threads/{thread_id}/messages/{message_id}",
+    response_model=schemas.ThreadMessage,
+)
+def get_message(
+    thread_id: str,
+    message_id: str,
+    db: Session = Depends(database.get_db),
+):
+    """
+    Retrieve a specific message from a thread.
+    - **thread_id**: The ID of the thread.
+    - **message_id**: The ID of the message to retrieve.
+    """
+    message_db = crud.get_message_by_id(
+        db, thread_id=thread_id, message_id=message_id
+    )
+    if not message_db:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return db_to_pydantic_message(message_db)

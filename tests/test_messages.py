@@ -91,7 +91,7 @@ def test_create_thread_with_message(openai_client: OpenAI):
     }
 
     create_thread = openai_client.beta.threads.create(messages=[message_data])
-
+    openai_client.beta.threads.messages.retrieve
     assert create_thread.id is not None
 
     get_messages = openai_client.beta.threads.messages.list(
@@ -105,3 +105,35 @@ def test_create_thread_with_message(openai_client: OpenAI):
     )
     assert get_messages.data[0].file_ids == message_data["file_ids"]
     assert get_messages.data[0].metadata == message_data["metadata"]
+
+
+@pytest.mark.dependency(
+    depends=["test_create_message_in_thread", "test_get_messages_in_thread"]
+)
+def test_get_specific_message_in_thread(openai_client: OpenAI, thread_id: str):
+    # First, create a message in the thread for testing
+    message_data = {
+        "role": "user",
+        "content": "Test message content",
+        "file_ids": [],
+        "metadata": {"example_key": "example_value"},
+    }
+    message_response = openai_client.beta.threads.messages.create(
+        thread_id=thread_id, **message_data
+    )
+    message_id = message_response.id
+
+    # Retrieve the specific message from the thread
+    retrieved_message = openai_client.beta.threads.messages.retrieve(
+        thread_id=thread_id, message_id=message_id
+    )
+
+    # Verify the retrieved message details
+    assert retrieved_message.id == message_id
+    assert retrieved_message.thread_id == thread_id
+    assert retrieved_message.role == message_data["role"]
+    assert retrieved_message.content[0].text.value == message_data["content"]
+    assert retrieved_message.file_ids == message_data["file_ids"]
+    assert retrieved_message.metadata == message_data["metadata"]
+
+    # Optionally, cleanup by deleting the message and thread if necessary
