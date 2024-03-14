@@ -1,15 +1,16 @@
 import pytest
 from openai import OpenAI
 from openai.types.beta.thread import Thread
+import os
 
-# import os
+api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 
 
 @pytest.fixture
 def openai_client():
     return OpenAI(
         base_url="http://localhost:8000",
-        # api_key=os.getenv("OPENAI_API_KEY"),
+        api_key=api_key,
     )
 
 
