@@ -31,6 +31,17 @@ services:
     image: redis:latest
     restart: always
 
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    environment:
+      RABBITMQ_DEFAULT_USER: $RABBITMQ_DEFAULT_USER
+      RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
   assistants_api:
     build:
       context: ./
@@ -43,6 +54,7 @@ services:
       - postgres
       - minio
       - redis
+      - rabbitmq
     environment:
       POSTGRES_HOST: $POSTGRES_HOST
       POSTGRES_PORT: $POSTGRES_PORT
@@ -62,8 +74,14 @@ services:
       MINIO_ENDPOINT: minio
       MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
       MINIO_SECRET_KEY: $MINIO_SECRET_KEY
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      RABBITMQ_DEFAULT_USER: $RABBITMQ_DEFAULT_USER
+      RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
+      RABBITMQ_HOST: $RABBITMQ_HOST
+      RABBITMQ_PORT: $RABBITMQ_PORT      
+    command:  sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
 
 volumes:
   postgres_data:
   minio_data:
+  rabbitmq_data:

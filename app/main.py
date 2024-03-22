@@ -22,7 +22,6 @@ class RawBodyMiddleware(BaseHTTPMiddleware):
 
 load_dotenv()
 
-
 app = FastAPI()
 
 app.add_middleware(
