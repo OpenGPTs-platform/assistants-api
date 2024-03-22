@@ -297,3 +297,48 @@ def update_message(
         db.refresh(db_message)
         return db_message
     return None
+
+
+# RUNS
+def create_run(db: Session, thread_id: str, run: schemas.RunContent):
+    # Check if the thread exists
+    db_thread = get_thread(db, thread_id)
+    if not db_thread:
+        raise ValueError(f"Thread with ID {thread_id} does not exist")
+
+    # Check if the assistant exists
+    db_assistant = get_assistant_by_id(db, run.assistant_id)
+    if not db_assistant:
+        raise ValueError(
+            f"Assistant with ID {run.assistant_id} does not exist"
+        )
+
+    # Set fields from run or fallback to assistant's values
+    instructions = (
+        run.instructions if run.instructions else db_assistant.instructions
+    )
+    model = run.model if run.model else db_assistant.model
+    tools = run.tools if run.tools else db_assistant.tools
+    metadata = run.metadata if run.metadata else db_assistant._metadata
+
+    # Create the Run instance
+    db_run = models.Run(
+        id=str(uuid.uuid4()),
+        thread_id=thread_id,
+        assistant_id=run.assistant_id,
+        created_at=int(time.time()),
+        expires_at=int(time.time()) + 3600,  # Assuming 1-hour expiration
+        instructions=instructions
+        + run.additional_instructions,  # Assuming this is how OpenAI handles additional instructions # noqa
+        model=model,
+        tools=tools,
+        _metadata=metadata,
+        status=schemas.RunStatus.QUEUED.value,
+    )
+
+    # Add and commit the new Run to the database
+    db.add(db_run)
+    db.commit()
+    db.refresh(db_run)
+
+    return db_run

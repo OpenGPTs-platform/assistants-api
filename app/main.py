@@ -4,6 +4,7 @@ from routers import (
     file_router,
     threads_router,
     message_router,
+    run_router,
 )
 from lib.db.database import engine
 from lib.db import models
@@ -36,8 +37,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# # TODO: Remove this in production
-# models.Base.metadata.drop_all(bind=engine)
+# TODO: Remove this in production
+models.Base.metadata.drop_all(bind=engine)
 
 # Create the database tables
 models.Base.metadata.create_all(bind=engine)
@@ -46,3 +47,4 @@ app.include_router(assistant_router.router)
 app.include_router(file_router.router)
 app.include_router(threads_router.router)
 app.include_router(message_router.router)
+app.include_router(run_router.router)

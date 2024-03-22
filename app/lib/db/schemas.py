@@ -3,11 +3,13 @@ from typing import Optional, List, Dict, Any
 from openai.types.beta.assistant import Assistant, Tool
 from openai.types.beta import Thread
 from openai.types.beta.threads import ThreadMessage
+from enum import Enum
 
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
 from openai.pagination import SyncCursorPage
+from openai.types.beta.threads import Run
 
 Assistant
 AssistantDeleted
@@ -15,6 +17,7 @@ Thread
 ThreadDeleted
 ThreadMessage  # database stored message, typically used for output
 SyncCursorPage
+Run
 
 
 class AssistantCreate(BaseModel):
@@ -69,3 +72,27 @@ class ThreadUpdate(BaseModel):
 
 class MessageUpdate(BaseModel):
     metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class RunContent(BaseModel):
+    assistant_id: str
+    additional_instructions: Optional[str] = Field(default="")
+    instructions: Optional[str] = Field(default="")
+    metadata: Optional[Dict[str, Any]] = Field(default=None)
+    model: Optional[str] = Field(default=None)
+    tools: Optional[List[Tool]] = Field(default=[])
+    extra_headers: Optional[Dict[str, str]] = Field(default=None)
+    extra_query: Optional[Dict[str, Any]] = Field(default=None)
+    extra_body: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+
+
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    IN_PROGRESS = "in_progress"
+    REQUIRES_ACTION = "requires_action"
+    CANCELLING = "cancelling"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
