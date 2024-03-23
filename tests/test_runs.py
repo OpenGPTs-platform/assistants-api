@@ -33,9 +33,7 @@ def assistant_id(openai_client: OpenAI):
 
 
 @pytest.mark.dependency()
-def test_create_thread_run(
-    openai_client: OpenAI, thread_id: str, assistant_id: str
-):
+def test_create_run(openai_client: OpenAI, thread_id: str, assistant_id: str):
     response = openai_client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=assistant_id,
@@ -46,3 +44,58 @@ def test_create_thread_run(
     assert response.thread_id == thread_id
     assert response.assistant_id == assistant_id
     # Additional assertions can be added based on the expected response
+
+
+@pytest.mark.dependency(depends=["test_create_run"])
+def test_create_run_with_modified_instruction(
+    openai_client: OpenAI, thread_id: str, assistant_id: str
+):
+    instructions = "You are a human."
+    additional_instructions = "Your job is to be useless."
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+        instructions=instructions,
+        additional_instructions=additional_instructions,
+    )
+
+    assert isinstance(response, Run)
+    assert response.id is not None
+    assert response.thread_id == thread_id
+    assert response.assistant_id == assistant_id
+    assert response.instructions == instructions + additional_instructions
+    # Additional assertions can be added based on the expected response
+
+
+@pytest.fixture
+def run_id_and_thread_id(
+    openai_client: OpenAI, thread_id: str, assistant_id: str
+):
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+    return (response.id, thread_id)
+
+
+@pytest.mark.dependency(depends=["test_create_run"])
+def test_get_run(openai_client: OpenAI, run_id_and_thread_id):
+    response = openai_client.beta.threads.runs.retrieve(
+        run_id=run_id_and_thread_id[0], thread_id=run_id_and_thread_id[1]
+    )
+
+    # Validate the response structure and data (simplified example)
+    assert response.id == run_id_and_thread_id[0]
+    assert response.object == "thread.run"
+    assert response.thread_id == run_id_and_thread_id[1]
+    assert response.assistant_id is not None
+    assert response.status in [
+        "queued",
+        "in_progress",
+        "requires_action",
+        "cancelling",
+        "cancelled",
+        "failed",
+        "completed",
+        "expired",
+    ]

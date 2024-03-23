@@ -342,3 +342,7 @@ def create_run(db: Session, thread_id: str, run: schemas.RunContent):
     db.refresh(db_run)
 
     return db_run
+
+
+def get_run(db: Session, run_id: str):
+    return db.query(models.Run).filter(models.Run.id == run_id).first()
