@@ -51,7 +51,19 @@ def create_run(
 def read_run(
     thread_id: str, run_id: str, db: Session = Depends(database.get_db)
 ):
-    db_run = crud.get_run(db, run_id=run_id)
+    db_run = crud.get_run(db, thread_id=thread_id, run_id=run_id)
     if db_run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return db_to_pydantic_run(db_run)
+
+
+@router.post(
+    "/threads/{thread_id}/runs/{run_id}/cancel", response_model=schemas.Run
+)
+def cancel_run(
+    thread_id: str, run_id: str, db: Session = Depends(database.get_db)
+):
+    run = crud.cancel_run(db, thread_id=thread_id, run_id=run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return db_to_pydantic_run(run)

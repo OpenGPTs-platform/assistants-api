@@ -329,6 +329,7 @@ def create_run(db: Session, thread_id: str, run: schemas.RunContent):
         created_at=int(time.time()),
         expires_at=int(time.time()) + 3600,  # Assuming 1-hour expiration
         instructions=instructions
+        + " "
         + run.additional_instructions,  # Assuming this is how OpenAI handles additional instructions # noqa
         model=model,
         tools=tools,
@@ -344,5 +345,23 @@ def create_run(db: Session, thread_id: str, run: schemas.RunContent):
     return db_run
 
 
-def get_run(db: Session, run_id: str):
-    return db.query(models.Run).filter(models.Run.id == run_id).first()
+def get_run(db: Session, thread_id: str, run_id: str):
+    return (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+
+
+def cancel_run(db: Session, thread_id: str, run_id: str):
+    db_run = (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+    if db_run:
+        db_run.status = schemas.RunStatus.CANCELLING.value
+        db.commit()
+        db.refresh(db_run)
+        return db_run
+    return None
