@@ -10,7 +10,7 @@ api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 @pytest.fixture
 def openai_client():
     return OpenAI(
-        # base_url="http://localhost:8000",
+        base_url="http://localhost:8000",
         api_key=api_key,
     )
 
@@ -18,7 +18,7 @@ def openai_client():
 @pytest.fixture(scope="session", autouse=True)
 def cleanup(request):
     openai_client = OpenAI(
-        # base_url="http://localhost:8000",
+        base_url="http://localhost:8000",
         api_key=api_key,
     )
 

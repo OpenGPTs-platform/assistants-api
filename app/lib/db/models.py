@@ -100,7 +100,7 @@ class Run(Base):
     __tablename__ = 'runs'
 
     id = Column(String, primary_key=True, index=True)
-    assistant_id = Column(String, index=True)
+    assistant_id = Column(String, index=False)
     cancelled_at = Column(Integer, nullable=True)
     completed_at = Column(Integer, nullable=True)
     created_at = Column(Integer, nullable=False)
@@ -123,4 +123,49 @@ class Run(Base):
 
 Thread.runs = relationship(
     "Run", order_by=Run.created_at, back_populates="thread"
+)
+
+
+class RunStep(Base):
+    __tablename__ = "run_steps"
+
+    id = Column(String, primary_key=True, index=True)
+    assistant_id = Column(String, ForeignKey('assistants.id'))
+    cancelled_at = Column(Integer, nullable=True)
+    completed_at = Column(Integer, nullable=True)
+    created_at = Column(Integer, nullable=False)
+    expired_at = Column(Integer, nullable=True)
+    failed_at = Column(Integer, nullable=True)
+    last_error = Column(JSON, nullable=True)
+    _metadata = Column("metadata", JSON, nullable=True)
+    object = Column(String, nullable=False, default="thread.run.step")
+    run_id = Column(String, ForeignKey('runs.id'))
+    status = Column(
+        Enum(
+            "in_progress",
+            "cancelled",
+            "failed",
+            "completed",
+            "expired",
+            name="run_step_status",
+        ),
+        nullable=False,
+    )
+    step_details = Column(
+        JSON, nullable=False
+    )  # To store details refer to https://github.com/OpenGPTs-platform/assistants-api/issues/12 # noqa
+    thread_id = Column(String, ForeignKey('threads.id'))
+    type = Column(
+        Enum("message_creation", "tool_calls", name="run_step_type"),
+        nullable=False,
+    )
+    usage = Column(JSON, nullable=True)
+
+    assistant = relationship("Assistant", back_populates="run_steps")
+    run = relationship("Run", back_populates="run_steps")
+    thread = relationship("Thread", back_populates="run_steps")
+
+
+Thread.run_steps = relationship(
+    "RunStep", order_by=RunStep.created_at, back_populates="thread"
 )
