@@ -132,3 +132,6 @@ def test_cancel_run(openai_client: OpenAI, run_id_and_thread_id: tuple):
 
     assert post_cancel_run_response.id == run_id_and_thread_id[0]
     assert post_cancel_run_response.status in ["cancelling", "cancelled"]
+
+
+# TODO: add test to evaluate if run can actually generate a response to a message
