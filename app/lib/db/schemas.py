@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Literal, Optional, List, Dict, Any, Union
 from openai.types.beta.assistant import Assistant, Tool
 from openai.types.beta import Thread
 from openai.types.beta.threads import ThreadMessage
@@ -10,6 +10,11 @@ from openai.types.beta.assistant_deleted import AssistantDeleted
 
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
+from openai.types.beta.threads.runs import (
+    RunStep,
+    MessageCreationStepDetails,
+    ToolCallsStepDetails,
+)
 
 Assistant
 AssistantDeleted
@@ -18,6 +23,9 @@ ThreadDeleted
 ThreadMessage  # database stored message, typically used for output
 SyncCursorPage
 Run
+RunStep
+
+StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
 
 class AssistantCreate(BaseModel):
@@ -112,3 +120,30 @@ class RunUpdate(BaseModel):
     status: Optional[str] = None
     tools: Optional[Any] = None
     usage: Optional[Any] = None
+
+
+class RunStepCreate(BaseModel):
+    # Define the fields required for creating a RunStep
+    assistant_id: str
+    step_details: Any
+    type: Literal["message_creation", "tool_calls"]
+    status: Literal[
+        "in_progress", "cancelled", "failed", "completed", "expired"
+    ]
+    step_details: StepDetails
+
+
+class RunStepUpdate(BaseModel):
+    assistant_id: Optional[str] = None
+    cancelled_at: Optional[int] = None
+    completed_at: Optional[int] = None
+    expired_at: Optional[int] = None
+    failed_at: Optional[int] = None
+    last_error: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    status: Literal[
+        "in_progress", "cancelled", "failed", "completed", "expired"
+    ] = None
+    step_details: StepDetails = None
+    type: Literal["message_creation", "tool_calls"] = None
+    usage: Optional[Dict[str, Any]] = None

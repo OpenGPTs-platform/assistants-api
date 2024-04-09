@@ -367,9 +367,7 @@ def cancel_run(db: Session, thread_id: str, run_id: str):
     return None
 
 
-# In crud.py
-
-
+# OPS
 def update_run(db: Session, thread_id: str, run_id: str, run_update: dict):
     db_run = (
         db.query(models.Run)
@@ -390,4 +388,61 @@ def update_run(db: Session, thread_id: str, run_id: str, run_update: dict):
         db.commit()
         db.refresh(db_run)
         return db_run
+    return None
+
+
+def create_run_step(
+    db: Session, thread_id: str, run_id: str, run_step: schemas.RunStepCreate
+):
+    new_run_step = models.RunStep(
+        id=str(uuid.uuid4()),
+        assistant_id=run_step.assistant_id,
+        step_details=run_step.step_details.model_dump(),
+        type=run_step.type,
+        status=run_step.status,
+        run_id=run_id,
+        thread_id=thread_id,
+        created_at=int(time.time()),
+        object="thread.run.step",  # Default value for the object field
+    )
+
+    db.add(new_run_step)
+    db.commit()
+    db.refresh(new_run_step)
+    return new_run_step
+
+
+def update_run_step(
+    db: Session,
+    thread_id: str,
+    run_id: str,
+    step_id: str,
+    run_step_update: dict,
+):
+    db_run_step = (
+        db.query(models.RunStep)
+        .filter(
+            models.RunStep.id == step_id,
+            models.RunStep.run_id == run_id,
+            models.RunStep.thread_id == thread_id,
+        )
+        .first()
+    )
+
+    if db_run_step:
+        for key, value in run_step_update.items():
+            if (
+                value is not None
+            ):  # Allow updates with falsy values like 0 or False
+                # Check if the attribute exists within the model before updating
+                if hasattr(db_run_step, key):
+                    setattr(db_run_step, key, value)
+                elif key == "metadata":  # Special handling for metadata
+                    setattr(db_run_step, "_metadata", value)
+
+        db.add(db_run_step)
+        db.commit()
+        db.refresh(db_run_step)
+        return db_run_step
+
     return None
