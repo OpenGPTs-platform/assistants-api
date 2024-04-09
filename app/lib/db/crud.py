@@ -225,7 +225,7 @@ def get_messages(
     order: str,
     after: str,
     before: str,
-):
+):  # TODO: before and after work in a strange way
     query = db.query(models.Message).filter(
         models.Message.thread_id == thread_id
     )
@@ -367,7 +367,32 @@ def cancel_run(db: Session, thread_id: str, run_id: str):
     return None
 
 
-# OPS
+def get_run_steps(
+    db: Session,
+    thread_id: str,
+    run_id: str,
+    limit: int,
+    order: str,
+    after: str = None,
+    before: str = None,
+):  # TODO: before and after work in a strange way
+    query = db.query(models.RunStep).filter(
+        models.RunStep.thread_id == thread_id, models.RunStep.run_id == run_id
+    )
+    if order == "asc":
+        query = query.order_by(asc(models.RunStep.created_at))
+    else:
+        query = query.order_by(desc(models.RunStep.created_at))
+    if after:
+        query = query.filter(models.RunStep.id > after)
+    if before:
+        query = query.filter(models.RunStep.id < before)
+    return query.limit(limit).all()
+
+
+###########################################################
+#                        OPS                              #
+###########################################################
 def update_run(db: Session, thread_id: str, run_id: str, run_update: dict):
     db_run = (
         db.query(models.Run)

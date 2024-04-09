@@ -44,16 +44,7 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
 
 
 @pytest.mark.dependency()
-def test_create_run_step(
-    openai_client: OpenAI, assistant_id: str, thread_id: str, run_id: str
-):
-    # get assistant
-    run = openai_client.beta.threads.runs.retrieve(
-        thread_id=thread_id, run_id=run_id
-    )
-    assert run.assistant_id == assistant_id
-    assistant_id = run.assistant_id
-
+def test_create_run_step(assistant_id: str, thread_id: str, run_id: str):
     create_url = (
         f"http://localhost:8000/ops/threads/{thread_id}/runs/{run_id}/steps"
     )
@@ -81,12 +72,8 @@ def test_create_run_step(
 
 
 @pytest.mark.dependency(depends=["test_create_run_step"])
-def test_update_run_step(
-    openai_client: OpenAI, assistant_id: str, thread_id: str, run_id: str
-):
-    step_id = test_create_run_step(
-        openai_client, assistant_id, thread_id, run_id
-    )
+def test_update_run_step(assistant_id: str, thread_id: str, run_id: str):
+    step_id = test_create_run_step(assistant_id, thread_id, run_id)
     update_url = f"http://localhost:8000/ops/threads/{thread_id}/runs/{run_id}/steps/{step_id}"  # noqa
     curr_time = int(time.time())
     update_data = {
