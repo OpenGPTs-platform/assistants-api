@@ -6,6 +6,7 @@ from routers import (
     message_router,
     run_router,
 )
+from routers.ops import run_ops_router
 from lib.db.database import engine
 from lib.db import models
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,3 +49,6 @@ app.include_router(file_router.router)
 app.include_router(threads_router.router)
 app.include_router(message_router.router)
 app.include_router(run_router.router)
+
+# ops routers
+app.include_router(run_ops_router.router)

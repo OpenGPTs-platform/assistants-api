@@ -96,3 +96,19 @@ class RunStatus(str, Enum):
     FAILED = "failed"
     COMPLETED = "completed"
     EXPIRED = "expired"
+
+
+class RunUpdate(BaseModel):
+    assistant_id: Optional[str] = None
+    cancelled_at: Optional[int] = None
+    completed_at: Optional[int] = None
+    expires_at: Optional[int] = None
+    failed_at: Optional[int] = None
+    file_ids: Optional[List[str]] = None
+    instructions: Optional[str] = None
+    last_error: Optional[Any] = None
+    model: Optional[str] = None
+    started_at: Optional[int] = None
+    status: Optional[str] = None
+    tools: Optional[Any] = None
+    usage: Optional[Any] = None

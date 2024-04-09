@@ -161,8 +161,8 @@ class RunStep(Base):
     )
     usage = Column(JSON, nullable=True)
 
-    assistant = relationship("Assistant", back_populates="run_steps")
-    run = relationship("Run", back_populates="run_steps")
+    # assistant = relationship("Assistant", back_populates="run_steps")
+    # run = relationship("Run", back_populates="run_steps")
     thread = relationship("Thread", back_populates="run_steps")
 
 

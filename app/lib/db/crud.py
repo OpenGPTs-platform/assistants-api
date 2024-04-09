@@ -365,3 +365,29 @@ def cancel_run(db: Session, thread_id: str, run_id: str):
         db.refresh(db_run)
         return db_run
     return None
+
+
+# In crud.py
+
+
+def update_run(db: Session, thread_id: str, run_id: str, run_update: dict):
+    db_run = (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+    if db_run:
+        for key, value in run_update.items():
+            if (
+                value is not None
+            ):  # Allowing updates with falsy values like 0 or False
+                if key == "metadata":
+                    setattr(db_run, "_metadata", value)
+                else:
+                    setattr(db_run, key, value)
+
+        db.add(db_run)
+        db.commit()
+        db.refresh(db_run)
+        return db_run
+    return None
