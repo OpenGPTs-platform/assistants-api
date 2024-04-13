@@ -225,7 +225,7 @@ def get_messages(
     order: str,
     after: str,
     before: str,
-):
+):  # TODO: before and after work in a strange way
     query = db.query(models.Message).filter(
         models.Message.thread_id == thread_id
     )
@@ -296,4 +296,178 @@ def update_message(
         db.commit()
         db.refresh(db_message)
         return db_message
+    return None
+
+
+# RUNS
+def create_run(db: Session, thread_id: str, run: schemas.RunContent):
+    # Check if the thread exists
+    db_thread = get_thread(db, thread_id)
+    if not db_thread:
+        raise ValueError(f"Thread with ID {thread_id} does not exist")
+
+    # Check if the assistant exists
+    db_assistant = get_assistant_by_id(db, run.assistant_id)
+    if not db_assistant:
+        raise ValueError(
+            f"Assistant with ID {run.assistant_id} does not exist"
+        )
+
+    # Set fields from run or fallback to assistant's values
+    instructions = (
+        run.instructions if run.instructions else db_assistant.instructions
+    )
+    model = run.model if run.model else db_assistant.model
+    tools = run.tools if run.tools else db_assistant.tools
+    metadata = run.metadata if run.metadata else db_assistant._metadata
+
+    # Create the Run instance
+    db_run = models.Run(
+        id=str(uuid.uuid4()),
+        thread_id=thread_id,
+        assistant_id=run.assistant_id,
+        created_at=int(time.time()),
+        expires_at=int(time.time()) + 3600,  # Assuming 1-hour expiration
+        instructions=instructions
+        + " "
+        + run.additional_instructions,  # Assuming this is how OpenAI handles additional instructions # noqa
+        model=model,
+        tools=tools,
+        _metadata=metadata,
+        status=schemas.RunStatus.QUEUED.value,
+    )
+
+    # Add and commit the new Run to the database
+    db.add(db_run)
+    db.commit()
+    db.refresh(db_run)
+
+    return db_run
+
+
+def get_run(db: Session, thread_id: str, run_id: str):
+    return (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+
+
+def cancel_run(db: Session, thread_id: str, run_id: str):
+    db_run = (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+    if db_run:
+        db_run.status = schemas.RunStatus.CANCELLING.value
+        db.commit()
+        db.refresh(db_run)
+        return db_run
+    return None
+
+
+def get_run_steps(
+    db: Session,
+    thread_id: str,
+    run_id: str,
+    limit: int,
+    order: str,
+    after: str = None,
+    before: str = None,
+):  # TODO: before and after work in a strange way
+    query = db.query(models.RunStep).filter(
+        models.RunStep.thread_id == thread_id, models.RunStep.run_id == run_id
+    )
+    if order == "asc":
+        query = query.order_by(asc(models.RunStep.created_at))
+    else:
+        query = query.order_by(desc(models.RunStep.created_at))
+    if after:
+        query = query.filter(models.RunStep.id > after)
+    if before:
+        query = query.filter(models.RunStep.id < before)
+    return query.limit(limit).all()
+
+
+###########################################################
+#                        OPS                              #
+###########################################################
+def update_run(db: Session, thread_id: str, run_id: str, run_update: dict):
+    db_run = (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+    if db_run:
+        for key, value in run_update.items():
+            if (
+                value is not None
+            ):  # Allowing updates with falsy values like 0 or False
+                if key == "metadata":
+                    setattr(db_run, "_metadata", value)
+                else:
+                    setattr(db_run, key, value)
+
+        db.add(db_run)
+        db.commit()
+        db.refresh(db_run)
+        return db_run
+    return None
+
+
+def create_run_step(
+    db: Session, thread_id: str, run_id: str, run_step: schemas.RunStepCreate
+):
+    new_run_step = models.RunStep(
+        id=str(uuid.uuid4()),
+        assistant_id=run_step.assistant_id,
+        step_details=run_step.step_details.model_dump(),
+        type=run_step.type,
+        status=run_step.status,
+        run_id=run_id,
+        thread_id=thread_id,
+        created_at=int(time.time()),
+        object="thread.run.step",  # Default value for the object field
+    )
+
+    db.add(new_run_step)
+    db.commit()
+    db.refresh(new_run_step)
+    return new_run_step
+
+
+def update_run_step(
+    db: Session,
+    thread_id: str,
+    run_id: str,
+    step_id: str,
+    run_step_update: dict,
+):
+    db_run_step = (
+        db.query(models.RunStep)
+        .filter(
+            models.RunStep.id == step_id,
+            models.RunStep.run_id == run_id,
+            models.RunStep.thread_id == thread_id,
+        )
+        .first()
+    )
+
+    if db_run_step:
+        for key, value in run_step_update.items():
+            if (
+                value is not None
+            ):  # Allow updates with falsy values like 0 or False
+                # Check if the attribute exists within the model before updating
+                if hasattr(db_run_step, key):
+                    setattr(db_run_step, key, value)
+                elif key == "metadata":  # Special handling for metadata
+                    setattr(db_run_step, "_metadata", value)
+
+        db.add(db_run_step)
+        db.commit()
+        db.refresh(db_run_step)
+        return db_run_step
+
     return None

@@ -1,13 +1,20 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Literal, Optional, List, Dict, Any, Union
 from openai.types.beta.assistant import Assistant, Tool
 from openai.types.beta import Thread
 from openai.types.beta.threads import ThreadMessage
+from enum import Enum
 
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
 
 from openai.pagination import SyncCursorPage
+from openai.types.beta.threads import Run
+from openai.types.beta.threads.runs import (
+    RunStep,
+    MessageCreationStepDetails,
+    ToolCallsStepDetails,
+)
 
 Assistant
 AssistantDeleted
@@ -15,6 +22,10 @@ Thread
 ThreadDeleted
 ThreadMessage  # database stored message, typically used for output
 SyncCursorPage
+Run
+RunStep
+
+StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
 
 class AssistantCreate(BaseModel):
@@ -69,3 +80,70 @@ class ThreadUpdate(BaseModel):
 
 class MessageUpdate(BaseModel):
     metadata: Optional[Dict[str, str]] = Field(default={})
+
+
+class RunContent(BaseModel):
+    assistant_id: str
+    additional_instructions: Optional[str] = Field(default="")
+    instructions: Optional[str] = Field(default="")
+    metadata: Optional[Dict[str, Any]] = Field(default=None)
+    model: Optional[str] = Field(default=None)
+    tools: Optional[List[Tool]] = Field(default=[])
+    extra_headers: Optional[Dict[str, str]] = Field(default=None)
+    extra_query: Optional[Dict[str, Any]] = Field(default=None)
+    extra_body: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+
+
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    IN_PROGRESS = "in_progress"
+    REQUIRES_ACTION = "requires_action"
+    CANCELLING = "cancelling"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+
+
+class RunUpdate(BaseModel):
+    assistant_id: Optional[str] = None
+    cancelled_at: Optional[int] = None
+    completed_at: Optional[int] = None
+    expires_at: Optional[int] = None
+    failed_at: Optional[int] = None
+    file_ids: Optional[List[str]] = None
+    instructions: Optional[str] = None
+    last_error: Optional[Any] = None
+    model: Optional[str] = None
+    started_at: Optional[int] = None
+    status: Optional[str] = None
+    tools: Optional[Any] = None
+    usage: Optional[Any] = None
+
+
+class RunStepCreate(BaseModel):
+    # Define the fields required for creating a RunStep
+    assistant_id: str
+    step_details: Any
+    type: Literal["message_creation", "tool_calls"]
+    status: Literal[
+        "in_progress", "cancelled", "failed", "completed", "expired"
+    ]
+    step_details: StepDetails
+
+
+class RunStepUpdate(BaseModel):
+    assistant_id: Optional[str] = None
+    cancelled_at: Optional[int] = None
+    completed_at: Optional[int] = None
+    expired_at: Optional[int] = None
+    failed_at: Optional[int] = None
+    last_error: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    status: Literal[
+        "in_progress", "cancelled", "failed", "completed", "expired"
+    ] = None
+    step_details: StepDetails = None
+    type: Literal["message_creation", "tool_calls"] = None
+    usage: Optional[Dict[str, Any]] = None

@@ -92,5 +92,80 @@ class Message(Base):
 
 
 Thread.messages = relationship(
-    "Message", order_by=Message.id, back_populates="thread"
+    "Message", order_by=Message.created_at, back_populates="thread"
+)
+
+
+class Run(Base):
+    __tablename__ = 'runs'
+
+    id = Column(String, primary_key=True, index=True)
+    assistant_id = Column(String, index=False)
+    cancelled_at = Column(Integer, nullable=True)
+    completed_at = Column(Integer, nullable=True)
+    created_at = Column(Integer, nullable=False)
+    expires_at = Column(Integer, nullable=False)
+    failed_at = Column(Integer, nullable=True)
+    file_ids = Column(JSON, default=[])
+    instructions = Column(String, nullable=False, default="")
+    last_error = Column(JSON, nullable=True)
+    _metadata = Column("metadata", JSON, nullable=True)
+    model = Column(String, nullable=False)
+    object = Column(String, nullable=False, default="thread.run")
+    started_at = Column(Integer, nullable=True)
+    status = Column(String, nullable=False)
+    thread_id = Column(String, ForeignKey('threads.id'))
+    tools = Column(JSON, nullable=True, default=[])
+    usage = Column(JSON, nullable=True)
+
+    thread = relationship("Thread", back_populates="runs")
+
+
+Thread.runs = relationship(
+    "Run", order_by=Run.created_at, back_populates="thread"
+)
+
+
+class RunStep(Base):
+    __tablename__ = "run_steps"
+
+    id = Column(String, primary_key=True, index=True)
+    assistant_id = Column(String, ForeignKey('assistants.id'))
+    cancelled_at = Column(Integer, nullable=True)
+    completed_at = Column(Integer, nullable=True)
+    created_at = Column(Integer, nullable=False)
+    expired_at = Column(Integer, nullable=True)
+    failed_at = Column(Integer, nullable=True)
+    last_error = Column(JSON, nullable=True)
+    _metadata = Column("metadata", JSON, nullable=True)
+    object = Column(String, nullable=False, default="thread.run.step")
+    run_id = Column(String, ForeignKey('runs.id'))
+    status = Column(
+        Enum(
+            "in_progress",
+            "cancelled",
+            "failed",
+            "completed",
+            "expired",
+            name="run_step_status",
+        ),
+        nullable=False,
+    )
+    step_details = Column(
+        JSON, nullable=False
+    )  # To store details refer to https://github.com/OpenGPTs-platform/assistants-api/issues/12 # noqa
+    thread_id = Column(String, ForeignKey('threads.id'))
+    type = Column(
+        Enum("message_creation", "tool_calls", name="run_step_type"),
+        nullable=False,
+    )
+    usage = Column(JSON, nullable=True)
+
+    # assistant = relationship("Assistant", back_populates="run_steps")
+    # run = relationship("Run", back_populates="run_steps")
+    thread = relationship("Thread", back_populates="run_steps")
+
+
+Thread.run_steps = relationship(
+    "RunStep", order_by=RunStep.created_at, back_populates="thread"
 )

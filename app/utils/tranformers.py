@@ -31,3 +31,23 @@ def db_to_pydantic_message(
     message_dict["metadata"] = message_dict["_metadata"]
     del message_dict["_metadata"]
     return schemas.ThreadMessage(**message_dict)
+
+
+def db_to_pydantic_run(
+    db_run: models.Run,
+) -> schemas.Run:
+    run_dict = db_run.__dict__
+    del run_dict["_sa_instance_state"]
+    run_dict["metadata"] = run_dict["_metadata"]
+    del run_dict["_metadata"]
+    return schemas.Run(**run_dict)
+
+
+def db_to_pydantic_runstep(
+    db_run_step: models.RunStep,
+) -> schemas.RunStep:
+    run_step_dict = db_run_step.__dict__
+    del run_step_dict["_sa_instance_state"]
+    run_step_dict["metadata"] = run_step_dict["_metadata"]
+    del run_step_dict["_metadata"]
+    return schemas.RunStep(**run_step_dict)
