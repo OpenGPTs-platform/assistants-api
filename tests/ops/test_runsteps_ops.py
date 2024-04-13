@@ -90,3 +90,46 @@ def test_update_run_step(assistant_id: str, thread_id: str, run_id: str):
     assert updated_step.status == "completed"
     assert updated_step.completed_at == curr_time
     assert updated_step.id == step_id
+
+
+# only works with access to steps (therefore does not work with OpenAI hosted Assistants API) # noqa
+@pytest.mark.dependency(depends=["test_create_run_step"])
+def test_create_multiple_run_steps(
+    openai_client: OpenAI, assistant_id: str, thread_id: str, run_id: str
+):
+    create_url = (
+        f"http://localhost:8000/ops/threads/{thread_id}/runs/{run_id}/steps"
+    )
+    step_data_tool = {
+        "assistant_id": assistant_id,
+        "type": "tool_calls",
+        "status": "in_progress",
+        "step_details": {"tool_calls": [], "type": "tool_calls"},
+    }
+    step_data_message = {
+        "assistant_id": assistant_id,
+        "type": "message_creation",
+        "status": "in_progress",
+        "step_details": {
+            "message_creation": {"message_id": "msg_6iTjazdBj74xg3yVbjrZye9P"},
+            "type": "message_creation",
+        },
+    }
+
+    requests.post(create_url, json=step_data_tool)
+    requests.post(create_url, json=step_data_message)
+
+    response = openai_client.beta.threads.runs.steps.list(
+        thread_id=thread_id, run_id=run_id
+    )
+    assert response is not None
+    assert len(response.data) == 2
+    assert isinstance(response.data[0], RunStep)
+    assert response.data[0].id is not None
+    assert response.data[0].step_details.type == "tool_calls"
+    assert response.data[1].id is not None
+    assert response.data[1].step_details.type == "message_creation"
+    assert (
+        response.data[1].step_details.message_creation.message_id
+        == "msg_6iTjazdBj74xg3yVbjrZye9P"
+    )

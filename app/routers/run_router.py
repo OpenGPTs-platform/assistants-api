@@ -8,6 +8,7 @@ from lib.db import (
 )  # Import your CRUD handlers, schemas, and models
 from lib.mb.broker import RabbitMQBroker, get_broker
 from utils.tranformers import db_to_pydantic_run
+import json
 
 router = APIRouter()
 
@@ -41,7 +42,9 @@ def create_run(
         raise HTTPException(status_code=500, detail="Run creation failed")
 
     # After successful creation, publish the run ID to the RabbitMQ queue
-    broker.publish("runs_queue", str(db_run.id))
+    data = {"thread_id": thread_id, "run_id": str(db_run.id)}
+    message = json.dumps(data)
+    broker.publish("runs_queue", message)
     broker.close_connection()
 
     return db_to_pydantic_run(db_run)
