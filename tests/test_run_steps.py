@@ -2,6 +2,8 @@ import pytest
 from openai import OpenAI
 
 # from openai.types.beta.threads.runs import RunStep
+
+# from openai.types.beta.threads.runs import RunStep
 import os
 
 import time
@@ -71,10 +73,68 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
     return response.id
 
 
+# @pytest.mark.dependency()
+# def test_read_run_steps_instant_completion(
+#     openai_client: OpenAI, assistant_id: str
+# ):
+#     thread_response = openai_client.beta.threads.create(
+#         messages=[
+#             {
+#                 "role": "user",
+#                 "content": "Concisely tell me when ww2 happened",  # noqa
+#             }
+#         ],
+#     )
+#     thread_id = thread_response.id
+#     response = openai_client.beta.threads.runs.create(
+#         thread_id=thread_id,
+#         assistant_id=assistant_id,
+#     )
+#     assert response.status == "queued"
+#     time.sleep(1)
+#     response = openai_client.beta.threads.runs.retrieve(
+#         thread_id=thread_id, run_id=response.id
+#     )
+#     assert response.status == "in_progress"
+#     # sleep for 10 seconds while the run is in progress
+#     time.sleep(10)
+#     response = openai_client.beta.threads.runs.steps.list(
+#         run_id=response.id, thread_id=thread_id
+#     )
+#     assert len(response.data) > 0
+#     assert isinstance(response.data[0], RunStep)
+#     assert response.data[0].step_details.type == "message_creation"
+
+
 @pytest.mark.dependency()
 def test_read_run_steps_active_executor(
-    openai_client: OpenAI, thread_id: str, assistant_id: str
+    openai_client: OpenAI, assistant_id: str
 ):
+    thread_response = openai_client.beta.threads.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "when did ww2 happen",  # noqa
+            },
+            {
+                "role": "assistant",
+                "content": "WW2 happened from 1939-1945",  # noqa
+            },
+            {
+                "role": "user",
+                "content": "I want to retrieve a key from my database.",  # noqa
+            },
+            {
+                "role": "assistant",
+                "content": "Where do you think the key would be located, I will help you find it afterwords.",  # noqa
+            },
+            {
+                "role": "user",
+                "content": "probaly under `software`",  # noqa
+            },
+        ],
+    )
+    thread_id = thread_response.id
     response = openai_client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=assistant_id,

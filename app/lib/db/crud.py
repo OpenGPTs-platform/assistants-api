@@ -148,8 +148,8 @@ def create_thread(db: Session, thread_data: schemas.ThreadCreate):
     # If your thread includes messages, you should handle their creation here
     db.add(new_thread)
     if thread_data.messages:
-        for message in thread_data.messages:
-            create_message(db, new_thread.id, message)
+        for idx, message in enumerate(thread_data.messages):
+            create_message(db, new_thread.id, message, time_shift=idx)
     db.commit()
     db.refresh(new_thread)
     return new_thread
@@ -191,7 +191,7 @@ def delete_thread(db: Session, thread_id: str) -> bool:
 
 # MESSAGE
 def create_message(
-    db: Session, thread_id: str, message: schemas.MessageContent
+    db: Session, thread_id: str, message: schemas.MessageContent, time_shift=0
 ):
     # Create a new Message object
     db_message = models.Message(
@@ -205,7 +205,7 @@ def create_message(
                 "text": {"annotations": [], "value": message.content},
             }
         ],  # TODO: no idea what annotations does
-        created_at=int(time.time()),
+        created_at=int(time.time()) + time_shift,
         file_ids=message.file_ids or [],
         _metadata=message.metadata or {},
     )
