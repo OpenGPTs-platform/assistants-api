@@ -122,7 +122,7 @@ def test_read_run_steps_active_executor(
             },
             {
                 "role": "user",
-                "content": "I want to retrieve a key from my database.",  # noqa
+                "content": "I want to retrieve a key.",  # noqa
             },
             {
                 "role": "assistant",

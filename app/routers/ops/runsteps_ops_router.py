@@ -11,6 +11,7 @@ from utils.tranformers import db_to_pydantic_runstep
 router = APIRouter()
 
 
+# TODO: improve test to actually inspect the run steps
 @router.post(
     "/ops/threads/{thread_id}/runs/{run_id}/steps",
     response_model=schemas.RunStep,
