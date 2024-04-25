@@ -106,6 +106,48 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
 #     assert response.data[0].step_details.type == "message_creation"
 
 
+# @pytest.mark.dependency()
+# def test_read_run_steps_active_executor(
+#     openai_client: OpenAI, assistant_id: str
+# ):
+#     thread_response = openai_client.beta.threads.create(
+#         messages=[
+#             {
+#                 "role": "user",
+#                 "content": "when did ww2 happen",  # noqa
+#             },
+#             {
+#                 "role": "assistant",
+#                 "content": "WW2 happened from 1939-1945",  # noqa
+#             },
+#             {
+#                 "role": "user",
+#                 "content": "I want to retrieve a key.",  # noqa
+#             },
+#             {
+#                 "role": "assistant",
+#                 "content": "Where do you think the key would be located, I will help you find it afterwords.",  # noqa
+#             },
+#             {
+#                 "role": "user",
+#                 "content": "probaly under `software`",  # noqa
+#             },
+#         ],
+#     )
+#     thread_id = thread_response.id
+#     response = openai_client.beta.threads.runs.create(
+#         thread_id=thread_id,
+#         assistant_id=assistant_id,
+#     )
+#     assert response.status == "queued"
+#     # sleep for 10 seconds while the run is in progress
+#     time.sleep(5)
+#     response = openai_client.beta.threads.runs.retrieve(
+#         thread_id=thread_id, run_id=response.id
+#     )
+#     assert response.status == "in_progress"
+
+
 @pytest.mark.dependency()
 def test_read_run_steps_active_executor(
     openai_client: OpenAI, assistant_id: str
@@ -122,15 +164,7 @@ def test_read_run_steps_active_executor(
             },
             {
                 "role": "user",
-                "content": "I want to retrieve a key.",  # noqa
-            },
-            {
-                "role": "assistant",
-                "content": "Where do you think the key would be located, I will help you find it afterwords.",  # noqa
-            },
-            {
-                "role": "user",
-                "content": "probaly under `software`",  # noqa
+                "content": "Please retrieve code my code reference for a test called test_create_assistant and once retrieved describe each of its configuration details to me.",  # noqa
             },
         ],
     )
