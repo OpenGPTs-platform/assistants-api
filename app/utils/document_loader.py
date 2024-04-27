@@ -1,4 +1,5 @@
 import fitz
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class DocumentLoader:
@@ -44,12 +45,11 @@ class DocumentLoader:
                 "No text available. Ensure 'read' is called first."
             )
 
-        chunks = []
-        position = 0
-        while position < len(self.text):
-            end = position + text_length
-            if position > 0 and text_overlap:
-                position -= text_overlap
-            chunks.append(self.text[position:end])
-            position = end
-        return chunks
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=text_length,
+            chunk_overlap=text_overlap,
+        )
+        documents = text_splitter.create_documents([self.text])
+        texts = [doc.page_content for doc in documents]
+        print("Texts: \n", texts)
+        return texts
