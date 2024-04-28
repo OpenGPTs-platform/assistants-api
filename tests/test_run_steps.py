@@ -1,7 +1,7 @@
 import pytest
 from openai import OpenAI
 
-# from openai.types.beta.threads.runs import RunStep
+from openai.types.beta.threads.runs import RetrievalToolCall
 
 # from openai.types.beta.threads.runs import RunStep
 import os
@@ -175,11 +175,33 @@ def test_read_run_steps_active_executor(
     )
     assert response.status == "queued"
     # sleep for 10 seconds while the run is in progress
-    time.sleep(5)
+    time.sleep(2)
     response = openai_client.beta.threads.runs.retrieve(
         thread_id=thread_id, run_id=response.id
     )
     assert response.status == "in_progress"
+    time.sleep(12)
+    response = openai_client.beta.threads.runs.retrieve(
+        thread_id=thread_id, run_id=response.id
+    )
+    assert response.status == "completed"
+    response = openai_client.beta.threads.runs.steps.list(
+        run_id=response.id,
+        thread_id=thread_id,
+        order="asc",  # newest at the end
+    )
+    assert len(response.data) > 1
+    # assert that at least one of the steps is a retrieval tool call
+    assert response.data[0].step_details.type == "message_creation"
+    assert response.data[-1].step_details.type == "message_creation"
+    assert any(
+        step.step_details.type == "tool_calls"
+        and any(
+            isinstance(tool_call, RetrievalToolCall)
+            for tool_call in step.step_details.tool_calls
+        )
+        for step in response.data
+    )
 
 
 # @pytest.mark.dependency()
