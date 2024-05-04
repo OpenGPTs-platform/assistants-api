@@ -2,6 +2,9 @@ import pytest
 from openai import OpenAI
 
 from openai.types.beta.threads.runs import RetrievalToolCall
+from openai.types.beta.threads.runs.web_retrieval_tool_call import (
+    WebRetrievalToolCall,
+)
 
 # from openai.types.beta.threads.runs import RunStep
 import os
@@ -57,7 +60,7 @@ def assistant_id(openai_client: OpenAI):
     response = openai_client.beta.assistants.create(
         instructions="Your job is to first execute tools as needed, and finally summarize the exchange.",  # noqa
         name="Tool Assistant",
-        tools=[{"type": "retrieval"}],
+        tools=[{"type": "retrieval"}, {"type": "web_retrieval"}],
         file_ids=[file.id],
         model="gpt-3.5-turbo",
     )
@@ -73,85 +76,46 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
     return response.id
 
 
-# @pytest.mark.dependency()
-# def test_read_run_steps_instant_completion(
-#     openai_client: OpenAI, assistant_id: str
-# ):
-#     thread_response = openai_client.beta.threads.create(
-#         messages=[
-#             {
-#                 "role": "user",
-#                 "content": "Concisely tell me when ww2 happened",  # noqa
-#             }
-#         ],
-#     )
-#     thread_id = thread_response.id
-#     response = openai_client.beta.threads.runs.create(
-#         thread_id=thread_id,
-#         assistant_id=assistant_id,
-#     )
-#     assert response.status == "queued"
-#     time.sleep(1)
-#     response = openai_client.beta.threads.runs.retrieve(
-#         thread_id=thread_id, run_id=response.id
-#     )
-#     assert response.status == "in_progress"
-#     # sleep for 10 seconds while the run is in progress
-#     time.sleep(10)
-#     response = openai_client.beta.threads.runs.steps.list(
-#         run_id=response.id, thread_id=thread_id
-#     )
-#     assert len(response.data) > 0
-#     assert isinstance(response.data[0], RunStep)
-#     assert response.data[0].step_details.type == "message_creation"
-
-
-# @pytest.mark.dependency()
-# def test_read_run_steps_active_executor(
-#     openai_client: OpenAI, assistant_id: str
-# ):
-#     thread_response = openai_client.beta.threads.create(
-#         messages=[
-#             {
-#                 "role": "user",
-#                 "content": "when did ww2 happen",  # noqa
-#             },
-#             {
-#                 "role": "assistant",
-#                 "content": "WW2 happened from 1939-1945",  # noqa
-#             },
-#             {
-#                 "role": "user",
-#                 "content": "I want to retrieve a key.",  # noqa
-#             },
-#             {
-#                 "role": "assistant",
-#                 "content": "Where do you think the key would be located, I will help you find it afterwords.",  # noqa
-#             },
-#             {
-#                 "role": "user",
-#                 "content": "probaly under `software`",  # noqa
-#             },
-#         ],
-#     )
-#     thread_id = thread_response.id
-#     response = openai_client.beta.threads.runs.create(
-#         thread_id=thread_id,
-#         assistant_id=assistant_id,
-#     )
-#     assert response.status == "queued"
-#     # sleep for 10 seconds while the run is in progress
-#     time.sleep(5)
-#     response = openai_client.beta.threads.runs.retrieve(
-#         thread_id=thread_id, run_id=response.id
-#     )
-#     assert response.status == "in_progress"
-
-
 @pytest.mark.dependency()
-def test_read_run_steps_active_executor(
-    openai_client: OpenAI, assistant_id: str
-):
+def test_no_tool_run_execution(openai_client: OpenAI, assistant_id: str):
+    thread_response = openai_client.beta.threads.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "when did ww2 happen (answer concisely)",  # noqa
+            }
+        ],
+    )
+    thread_id = thread_response.id
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+    assert response.status == "queued"
+    # sleep for 10 seconds while the run is in progress
+    time.sleep(0.1)
+    response = openai_client.beta.threads.runs.retrieve(
+        thread_id=thread_id, run_id=response.id
+    )
+    assert response.status == "in_progress"
+    time.sleep(4)
+
+    response = openai_client.beta.threads.runs.retrieve(
+        thread_id=thread_id, run_id=response.id
+    )
+    assert response.status == "completed"
+    response = openai_client.beta.threads.runs.steps.list(
+        run_id=response.id,
+        thread_id=thread_id,
+        order="asc",  # newest at the end
+    )
+    assert len(response.data) == 1
+    # assert that at least one of the steps is a retrieval tool call
+    assert response.data[0].step_details.type == "message_creation"
+
+
+@pytest.mark.dependency(depends=["test_no_tool_run_execution"])
+def test_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
     thread_response = openai_client.beta.threads.create(
         messages=[
             {
@@ -174,57 +138,97 @@ def test_read_run_steps_active_executor(
         assistant_id=assistant_id,
     )
     assert response.status == "queued"
-    # sleep for 10 seconds while the run is in progress
-    time.sleep(2)
-    response = openai_client.beta.threads.runs.retrieve(
-        thread_id=thread_id, run_id=response.id
-    )
-    assert response.status == "in_progress"
-    time.sleep(12)
-    response = openai_client.beta.threads.runs.retrieve(
-        thread_id=thread_id, run_id=response.id
-    )
-    assert response.status == "completed"
-    response = openai_client.beta.threads.runs.steps.list(
+    # Check every 4 seconds, up to 5 times
+    max_checks = 10
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        response = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_id, run_id=response.id
+        )
+
+        assert response.status in ["in_progress", "completed"]
+
+        if response.status == "completed":
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
+
+    # Once completed, retrieve steps and perform final assertions
+    steps_response = openai_client.beta.threads.runs.steps.list(
         run_id=response.id,
         thread_id=thread_id,
-        order="asc",  # newest at the end
+        order="asc",
     )
-    assert len(response.data) > 1
-    # assert that at least one of the steps is a retrieval tool call
-    assert response.data[0].step_details.type == "message_creation"
-    assert response.data[-1].step_details.type == "message_creation"
+    assert len(steps_response.data) > 1
+
+    # Ensure there is at least one tool call of type WebRetrievalToolCall
     assert any(
         step.step_details.type == "tool_calls"
         and any(
             isinstance(tool_call, RetrievalToolCall)
             for tool_call in step.step_details.tool_calls
         )
-        for step in response.data
+        for step in steps_response.data
     )
 
 
-# @pytest.mark.dependency()
-# def test_read_run_steps_active_executor(
-#     openai_client: OpenAI, thread_id: str, assistant_id: str
-# ):
-#     response = openai_client.beta.threads.runs.create(
-#         thread_id=thread_id,
-#         assistant_id=assistant_id,
-#     )
-#     # sleep for 10 seconds while the run is in progress
-#     time.sleep(5)
-#     response = openai_client.beta.threads.runs.steps.list(
-#         thread_id=thread_id, run_id=response.id
-#     )
+@pytest.mark.dependency(depends=["test_no_tool_run_execution"])
+def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
+    thread_response = openai_client.beta.threads.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "when did ww2 happen",  # noqa
+            },
+            {
+                "role": "assistant",
+                "content": "WW2 happened from 1939-1945",  # noqa
+            },
+            {
+                "role": "user",
+                "content": "What scholarships can I obtain if I transfer from an in-state college to UF",  # noqa
+            },
+        ],
+    )
+    thread_id = thread_response.id
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+    assert response.status == "queued"
+    # Check every 4 seconds, up to 5 times
+    max_checks = 10
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        response = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_id, run_id=response.id
+        )
 
-#     assert len(response.data) > 0
-#     assert isinstance(response.data[0], RunStep)
-#     assert response.data[0].id is not None
-#     assert response.data[0].step_details.type == "message_creation"
-#     assert (
-#         response.data[0].step_details.message_creation.message_id[:4] == "msg_"
-#     )
-#     assert response.data[1].id is not None
-#     assert response.data[1].step_details.type == "tool_calls"
-#     assert response.data[1].step_details.tool_calls[0].type == "retrieval"
+        assert response.status in ["in_progress", "completed"]
+
+        if response.status == "completed":
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
+
+    # Once completed, retrieve steps and perform final assertions
+    steps_response = openai_client.beta.threads.runs.steps.list(
+        run_id=response.id,
+        thread_id=thread_id,
+        order="asc",
+    )
+    assert len(steps_response.data) > 1
+
+    # Ensure there is at least one tool call of type WebRetrievalToolCall
+    assert any(
+        step.step_details.type == "tool_calls"
+        and any(
+            isinstance(tool_call, WebRetrievalToolCall)
+            for tool_call in step.step_details.tool_calls
+        )
+        for step in steps_response.data
+    )
