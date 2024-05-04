@@ -1,4 +1,6 @@
 # assistants-api
+![image](https://github.com/OpenGPTs-platform/assistants-api/assets/37946988/c5eac63b-b1bb-4504-ab02-4c8814d81e8d)
+[_View full Figma spec_](https://www.figma.com/file/RBobTMUNS6EtelpTDyYqnA/Open-GPTs?type=whiteboard&node-id=0%3A1&t=Ga2G6MUOUiNjqe3l-1)
 
 Immitate the OpenAI Assistants API in FastAPI using the official [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml).
 
