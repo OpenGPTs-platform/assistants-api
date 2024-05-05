@@ -1,5 +1,5 @@
 # assistants-api
-
+Note: currently support client `openai==1.13.4`
 ### [Video Demo (full OpenGPTs-platform)](https://youtu.be/yPdIEKb3jWc)
 
 Architecture
