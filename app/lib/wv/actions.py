@@ -10,12 +10,13 @@ def upload_file_chunks(file_data: bytes, file_name: str, file_id: str) -> int:
 
     collection = None
     try:
-        collection = weaviate_client.collections.get(name="opengpts")
-    except Exception:
         collection = weaviate_client.collections.create(
             name="opengpts",
             vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
+            generative_config=wvc.config.Configure.Generative.openai(),
         )
+    except Exception:
+        collection = weaviate_client.collections.get(name="opengpts")
 
     data = [{"text": chunk, "file_id": file_id} for chunk in chunks]
     collection.data.insert_many(data)
