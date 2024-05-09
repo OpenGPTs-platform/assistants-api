@@ -24,13 +24,13 @@ def db_to_pydantic_thread(
 
 def db_to_pydantic_message(
     db_message: models.Message,
-) -> schemas.ThreadMessage:
+) -> schemas.Message:
     message_dict = db_message.__dict__
     print("DB TO PY", message_dict)
     del message_dict["_sa_instance_state"]
     message_dict["metadata"] = message_dict["_metadata"]
     del message_dict["_metadata"]
-    return schemas.ThreadMessage(**message_dict)
+    return schemas.Message(**message_dict)
 
 
 def db_to_pydantic_run(

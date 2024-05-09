@@ -169,3 +169,29 @@ class RunStep(Base):
 Thread.run_steps = relationship(
     "RunStep", order_by=RunStep.created_at, back_populates="thread"
 )
+
+
+class VectorStore(Base):
+    __tablename__ = 'vector_stores'
+
+    id = Column(String, primary_key=True, index=True)
+    created_at = Column(Integer, nullable=False)
+    last_active_at = Column(Integer, nullable=True)
+    _metadata = Column("metadata", JSON, nullable=True)
+    name = Column(String(256), nullable=False)
+    status = Column(
+        Enum(
+            "in_progress",
+            "completed",
+            "expired",
+            name="vector_store_status",
+        ),
+        nullable=False,
+    )
+    usage_bytes = Column(Integer, nullable=False)
+    file_counts = Column(JSON, nullable=False)
+    expires_after = Column(JSON, nullable=True)
+    expires_at = Column(Integer, nullable=True)
+
+    def __repr__(self):
+        return f"<VectorStore(id={self.id}, name={self.name}, status={self.status})>"

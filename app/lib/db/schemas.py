@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List, Dict, Any, Union
-from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta.assistant import Assistant, AssistantTool
 from openai.types.beta import Thread
-from openai.types.beta.threads import ThreadMessage
+from openai.types.beta.threads import Message
 from enum import Enum
 
 from openai.types.beta.thread_deleted import ThreadDeleted
@@ -20,7 +20,7 @@ Assistant
 AssistantDeleted
 Thread
 ThreadDeleted
-ThreadMessage  # database stored message, typically used for output
+Message  # database stored message, typically used for output
 SyncCursorPage
 Run
 RunStep
@@ -33,7 +33,7 @@ class AssistantCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=512)
     model: str
     instructions: Optional[str] = Field(None, max_length=32768)
-    tools: List[Tool] = []
+    tools: List[AssistantTool] = []
     file_ids: List[str] = []
     metadata: Optional[Dict[str, Any]] = None
 
@@ -56,7 +56,7 @@ class AssistantUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=512)
     model: Optional[str] = Field(None, max_length=256)
     instructions: Optional[str] = Field(None, max_length=32768)
-    tools: Optional[List[Tool]] = Field(None)
+    tools: Optional[List[AssistantTool]] = Field(None)
     metadata: Optional[Dict[str, Any]] = Field(None)
     file_ids: Optional[List[str]] = Field(None)
 
@@ -88,7 +88,7 @@ class RunContent(BaseModel):
     instructions: Optional[str] = Field(default="")
     metadata: Optional[Dict[str, Any]] = Field(default=None)
     model: Optional[str] = Field(default=None)
-    tools: Optional[List[Tool]] = Field(default=[])
+    tools: Optional[List[AssistantTool]] = Field(default=[])
     extra_headers: Optional[Dict[str, str]] = Field(default=None)
     extra_query: Optional[Dict[str, Any]] = Field(default=None)
     extra_body: Optional[Dict[str, Any]] = Field(default=None)

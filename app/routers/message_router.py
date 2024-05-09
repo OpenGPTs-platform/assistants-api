@@ -7,9 +7,7 @@ from utils.tranformers import db_to_pydantic_message
 router = APIRouter()
 
 
-@router.post(
-    "/threads/{thread_id}/messages", response_model=schemas.ThreadMessage
-)
+@router.post("/threads/{thread_id}/messages", response_model=schemas.Message)
 def create_message_in_thread(
     thread_id: str,
     message: schemas.MessageContent,
@@ -26,7 +24,7 @@ def create_message_in_thread(
 
 @router.get(
     "/threads/{thread_id}/messages",
-    response_model=schemas.SyncCursorPage[schemas.ThreadMessage],
+    response_model=schemas.SyncCursorPage[schemas.Message],
 )
 def get_messages_in_thread(
     thread_id: str,
@@ -60,7 +58,7 @@ def get_messages_in_thread(
 
 @router.get(
     "/threads/{thread_id}/messages/{message_id}",
-    response_model=schemas.ThreadMessage,
+    response_model=schemas.Message,
 )
 def get_message(
     thread_id: str,
@@ -82,7 +80,7 @@ def get_message(
 
 @router.post(
     "/threads/{thread_id}/messages/{message_id}",
-    response_model=schemas.ThreadMessage,
+    response_model=schemas.Message,
 )
 def modify_message(
     thread_id: str = Path(
