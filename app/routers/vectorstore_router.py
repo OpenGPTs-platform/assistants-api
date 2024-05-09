@@ -37,7 +37,6 @@ def create_vector_store(
         )
         usage_bytes = 0
         # print file ids
-        print("\n\n\n vector_store.file_ids:", vector_store.file_ids)
         for file_id in vector_store.file_ids:
             try:
                 file_data = fs_actions.get_file_binary(
@@ -46,21 +45,21 @@ def create_vector_store(
                 file_metadata = fs_actions.get_file(
                     minio_client, BUCKET_NAME, file_id
                 )
-                print("\n\n\n file_metadata:", file_metadata)
 
-                amt = wv_actions.upload_file_chunks(
+                wv_actions.upload_file_chunks(
                     file_data,
                     file_metadata.filename,
                     file_id,
                     db_vector_store.id,
                 )
-                print("\n\n\n amt:", amt)
                 usage_bytes += len(file_data)
 
                 # Update the vector store file counts on successful processing
                 file_counts.completed += 1
             except Exception as e:
-                print("\n\n\n Exception:", e)
+                print(
+                    f"Error processing file '{file_metadata.filename}': {str(e)}"
+                )
                 file_counts.failed += 1
             file_counts.in_progress -= 1
 
