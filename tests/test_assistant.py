@@ -1,19 +1,26 @@
 import pytest
 from openai import OpenAI
 from openai.pagination import SyncCursorPage
-from openai.types.beta.assistant import Assistant, ToolCodeInterpreter
+from openai.types.beta.assistant import Assistant
+from openai.types.beta.code_interpreter_tool import CodeInterpreterTool
 from datetime import datetime
 import os
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 # # TODO: cleanup are causing issues with the tests, uncomment when fixed or using OpenAI API # noqa
@@ -33,12 +40,18 @@ def openai_client():
 # /assistants POST
 @pytest.mark.dependency()
 def test_create_assistant(openai_client: OpenAI):
+    metadata = {
+        "str": "string",
+        "int": "1",
+        "bool": "True",
+        "list": "[1, 2, 3]",
+    }
     response = openai_client.beta.assistants.create(
         instructions="You are an AI designed to provide examples.",
         name="Example Assistant",
         tools=[{"type": "code_interpreter"}],
         model="gpt-4",
-        metadata={"str": "string", "int": 1, "bool": True, "list": [1, 2, 3]},
+        metadata=metadata,
     )
     assert isinstance(response, Assistant)
     assert response.id is not None
@@ -47,14 +60,9 @@ def test_create_assistant(openai_client: OpenAI):
         response.instructions == "You are an AI designed to provide examples."
     )
     assert response.name == "Example Assistant"
-    assert isinstance(response.tools[0], ToolCodeInterpreter)
+    assert isinstance(response.tools[0], CodeInterpreterTool)
     assert response.model == "gpt-4"
-    assert response.metadata == {
-        "str": "string",
-        "int": 1,
-        "bool": True,
-        "list": [1, 2, 3],
-    }
+    assert response.metadata == metadata
 
 
 # /assistants GET
@@ -119,18 +127,20 @@ def test_get_assistant(openai_client: OpenAI):
 # /assistants/{assistant_id} POST
 @pytest.mark.dependency(depends=["test_create_assistant"])
 def test_modify_assistant(openai_client: OpenAI):
+    metadata = {"str": "string", "int": "1", "list": "[1, 2, 3]"}
     template = {
         "model": "gpt-4",
         "name": "Example Assistant",
         "instructions": "You are an AI designed to provide examples.",
-        "metadata": {"str": "string", "int": 1, "list": [1, 2, 3]},
+        "metadata": metadata,
     }
     new_assistant = openai_client.beta.assistants.create(**template)
 
+    metadata_to_be = {**template["metadata"], "bool": "True"}
     updated_template = {
         "instructions": "Updated instructions for the assistant.",
         "tools": [{"type": "code_interpreter"}],
-        "metadata": {**template["metadata"], "bool": True},
+        "metadata": {"bool": "True"},
     }
     # Perform the update operation
     response = openai_client.beta.assistants.update(
@@ -142,20 +152,25 @@ def test_modify_assistant(openai_client: OpenAI):
     assert isinstance(response, Assistant)
     assert response.id == new_assistant.id
     assert response.instructions == updated_template["instructions"]
-    assert isinstance(response.tools[0], ToolCodeInterpreter)
+    assert isinstance(response.tools[0], CodeInterpreterTool)
     assert response.name == template["name"]
-    assert response.metadata["str"] == updated_template["metadata"]["str"]
-    assert response.metadata["bool"] == updated_template["metadata"]["bool"]
+    assert response.metadata == metadata_to_be
 
 
 @pytest.mark.dependency(depends=["test_create_assistant"])
 def test_delete_assistant(openai_client: OpenAI):
     # Assuming an assistant has been created in a prior test and its ID is retrievable
+    metadata = {
+        "str": "string",
+        "int": "1",
+        "bool": "True",
+        "list": "[1, 2, 3]",
+    }
     template = {
         "model": "gpt-4",
         "name": "Example Assistant",
         "instructions": "You are an AI designed to provide examples.",
-        "metadata": {"str": "string", "int": 1, "list": [1, 2, 3]},
+        "metadata": metadata,
     }
     new_assistant = openai_client.beta.assistants.create(**template)
 
@@ -172,6 +187,6 @@ def test_delete_assistant(openai_client: OpenAI):
         openai_client.beta.assistants.retrieve(new_assistant.id)
     except Exception as e:
         assert e.status_code == 404
-        assert "Assistant not found" in str(e)
+        assert "No assistant found" in str(e)
     else:
         raise AssertionError("Assistant was not deleted")

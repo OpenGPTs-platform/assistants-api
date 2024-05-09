@@ -4,14 +4,20 @@ from openai.types.beta.threads import Run
 import os
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 @pytest.fixture
@@ -41,6 +47,7 @@ def test_create_run(openai_client: OpenAI, thread_id: str, assistant_id: str):
 
     assert isinstance(response, Run)
     assert response.id is not None
+
     assert response.thread_id == thread_id
     assert response.assistant_id == assistant_id
     # Additional assertions can be added based on the expected response
@@ -85,8 +92,6 @@ def test_get_run(openai_client: OpenAI, run_id_and_thread_id: tuple):
     response = openai_client.beta.threads.runs.retrieve(
         run_id=run_id_and_thread_id[0], thread_id=run_id_and_thread_id[1]
     )
-
-    openai_client.beta.threads.runs.cancel
 
     # Validate the response structure and data (simplified example)
     assert response.id == run_id_and_thread_id[0]

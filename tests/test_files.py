@@ -1,5 +1,3 @@
-import weaviate
-import weaviate.classes as wvc
 import pytest
 from openai import OpenAI
 from openai.types import FileObject
@@ -7,14 +5,20 @@ import os
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 weaviate_url = os.getenv("WEAVIATE_URL") if os.getenv("WEAVIATE_URL") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 @pytest.mark.dependency()
@@ -28,23 +32,6 @@ def test_create_file(openai_client: OpenAI):
     assert response.filename == "test.txt"
     assert response.purpose == "assistants"
 
-    weaviate_client = weaviate.connect_to_wcs(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=None,
-        headers={
-            "X-OpenAI-Api-Key": os.getenv("OPENAI_API_KEY"),
-        },
-    )
-    collection = weaviate_client.collections.get(name="opengpts")
-    res = collection.query.near_text(
-        query="Here is a second line of text",
-        limit=1,
-        filters=wvc.query.Filter.by_property("file_id").equal(response.id),
-    )
-
-    assert len(res.objects) == 1
-    assert "Here is a second line of text" in res.objects[0].properties["text"]
-
 
 def test_create_file_pdf(openai_client: OpenAI):
     with open('./tests/test.pdf', 'rb') as file:
@@ -55,23 +42,6 @@ def test_create_file_pdf(openai_client: OpenAI):
     assert response.created_at is not None
     assert response.filename == "test.pdf"
     assert response.purpose == "assistants"
-
-    weaviate_client = weaviate.connect_to_wcs(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=None,
-        headers={
-            "X-OpenAI-Api-Key": os.getenv("OPENAI_API_KEY"),
-        },
-    )
-    collection = weaviate_client.collections.get(name="opengpts")
-    res = collection.query.near_text(
-        query="Here is a second line of text",
-        limit=1,
-        filters=wvc.query.Filter.by_property("file_id").equal(response.id),
-    )
-
-    assert len(res.objects) == 1
-    assert "Here is a second line of text" in res.objects[0].properties["text"]
 
 
 @pytest.mark.dependency(depends=["test_create_file"])

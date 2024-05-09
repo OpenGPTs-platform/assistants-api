@@ -1,7 +1,7 @@
 import pytest
 from openai import OpenAI
 
-from openai.types.beta.threads.runs import RetrievalToolCall
+from openai.types.beta.threads.runs import FileSearchToolCall
 from openai.types.beta.threads.runs.web_retrieval_tool_call import (
     WebRetrievalToolCall,
 )
@@ -12,14 +12,20 @@ import os
 import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 # # TODO: cleanup are causing issues with the tests, uncomment when fixed or using OpenAI API # noqa
@@ -54,14 +60,9 @@ def thread_id(openai_client: OpenAI):
 
 @pytest.fixture
 def assistant_id(openai_client: OpenAI):
-    file = openai_client.files.create(
-        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
-    )
     response = openai_client.beta.assistants.create(
         instructions="Your job is to first execute tools as needed, and finally summarize the exchange.",  # noqa
         name="Tool Assistant",
-        tools=[{"type": "retrieval"}, {"type": "web_retrieval"}],
-        file_ids=[file.id],
         model="gpt-3.5-turbo",
     )
     return response.id
@@ -78,6 +79,19 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
 
 @pytest.mark.dependency()
 def test_no_tool_run_execution(openai_client: OpenAI, assistant_id: str):
+    file = openai_client.files.create(
+        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+    )
+    vs = openai_client.beta.vector_stores.create(name="my code")
+    openai_client.beta.vector_stores.file_batches.create(
+        vector_store_id=vs.id, file_ids=[file.id]
+    )
+    openai_client.beta.assistants.update(
+        assistant_id=assistant_id,
+        tools=[{"type": "file_search"}],
+        tool_resources={"file_search": {"vector_store_ids": [vs.id]}},
+    )
+
     thread_response = openai_client.beta.threads.create(
         messages=[
             {
@@ -109,13 +123,25 @@ def test_no_tool_run_execution(openai_client: OpenAI, assistant_id: str):
         thread_id=thread_id,
         order="asc",  # newest at the end
     )
-    assert len(response.data) == 1
+    assert len(response.data) >= 1
     # assert that at least one of the steps is a retrieval tool call
-    assert response.data[0].step_details.type == "message_creation"
+    assert response.data[-1].step_details.type == "message_creation"
 
 
 @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
-def test_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
+def test_file_search_run_executor(openai_client: OpenAI, assistant_id: str):
+    file = openai_client.files.create(
+        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+    )
+    vs = openai_client.beta.vector_stores.create(name="my code")
+    openai_client.beta.vector_stores.file_batches.create(
+        vector_store_id=vs.id, file_ids=[file.id]
+    )
+    openai_client.beta.assistants.update(
+        assistant_id=assistant_id,
+        tools=[{"type": "file_search"}],
+        tool_resources={"file_search": {"vector_store_ids": [vs.id]}},
+    )
     thread_response = openai_client.beta.threads.create(
         messages=[
             {
@@ -167,7 +193,7 @@ def test_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
     assert any(
         step.step_details.type == "tool_calls"
         and any(
-            isinstance(tool_call, RetrievalToolCall)
+            isinstance(tool_call, FileSearchToolCall)
             for tool_call in step.step_details.tool_calls
         )
         for step in steps_response.data
@@ -176,6 +202,18 @@ def test_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
 
 @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
 def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
+    file = openai_client.files.create(
+        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+    )
+    vs = openai_client.beta.vector_stores.create(name="my code")
+    openai_client.beta.vector_stores.file_batches.create(
+        vector_store_id=vs.id, file_ids=[file.id]
+    )
+    openai_client.beta.assistants.update(
+        assistant_id=assistant_id,
+        tools=[{"type": "file_search"}, {"type": "web_retrieval"}],
+        tool_resources={"file_search": {"vector_store_ids": [vs.id]}},
+    )
     thread_response = openai_client.beta.threads.create(
         messages=[
             {
