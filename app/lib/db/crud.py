@@ -483,7 +483,7 @@ def create_vector_store(db: Session, vector_store: schemas.VectorStoreCreate):
     )
 
     db_vector_store = models.VectorStore(
-        id=str(uuid.uuid4()),
+        id="vs_" + str(uuid.uuid4()),
         name=vector_store.name,
         expires_after=expiration_after,
         file_counts=file_counts.model_dump(),

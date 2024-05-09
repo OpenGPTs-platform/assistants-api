@@ -193,6 +193,3 @@ class VectorStore(Base):
     file_counts = Column(JSON, nullable=False)
     expires_after = Column(JSON, nullable=True)
     expires_at = Column(Integer, nullable=True)
-
-    def __repr__(self):
-        return f"<VectorStore(id={self.id}, name={self.name}, status={self.status})>"

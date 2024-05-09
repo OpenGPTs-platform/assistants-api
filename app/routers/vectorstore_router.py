@@ -4,8 +4,7 @@ from utils.tranformers import db_to_pydantic_vector_store
 from lib.db import crud, schemas, database
 from minio import Minio
 from lib.wv import actions as wv_actions
-from lib.fs.store import minio_client, BUCKET_NAME
-from lib.fs import actions as fs_actions
+from lib.fs.store import minio_client
 
 router = APIRouter()
 
@@ -36,27 +35,23 @@ def create_vector_store(
             {"file_counts": file_counts.model_dump()},
         )
         usage_bytes = 0
-        for file_id in vector_store.file_ids:
-            try:
-                file_data = fs_actions.get_file_binary(
-                    minio_client, BUCKET_NAME, file_id
-                )
-                file_name = f"{vector_store_model.name}_{file_id}"
-                wv_actions.upload_file_chunks(
-                    file_data, file_name, file_id, db_vector_store.id
-                )
-                usage_bytes += len(file_data)
+        # for file_id in vector_store.file_ids:
+        #     try:
+        #         file_data = fs_actions.get_file_binary(
+        #             minio_client, BUCKET_NAME, file_id
+        #         )
+        #         file_name = f"{vector_store_model.name}_{file_id}"
 
-                # Update the vector store file counts on successful processing
-                file_counts.completed += 1
-            except Exception:
-                file_counts.failed += 1
-                # db.rollback()
-                # raise HTTPException(
-                #     status_code=500,
-                #     detail=f"Failed to process file {file_id}: {str(e)}",
-                # )
-            file_counts.in_progress -= 1
+        #         wv_actions.upload_file_chunks(
+        #             file_data, file_name, file_id, db_vector_store.id
+        #         )
+        #         usage_bytes += len(file_data)
+
+        #         # Update the vector store file counts on successful processing
+        #         file_counts.completed += 1
+        #     except Exception:
+        #         file_counts.failed += 1
+        #     file_counts.in_progress -= 1
 
         # Update the file counts after processing all files
         crud.update_vector_store(
