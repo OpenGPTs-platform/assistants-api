@@ -471,3 +471,47 @@ def update_run_step(
         return db_run_step
 
     return None
+
+
+def create_vector_store(db: Session, vector_store: schemas.VectorStoreCreate):
+    # Convert expiration details to JSON if necessary
+    expiration_after = (
+        vector_store.expires_after if vector_store.expires_after else None
+    )
+    file_counts = schemas.FileCounts(
+        cancelled=0, completed=0, failed=0, in_progress=0, total=0
+    )
+
+    db_vector_store = models.VectorStore(
+        id=str(uuid.uuid4()),
+        name=vector_store.name,
+        expires_after=expiration_after,
+        file_counts=file_counts.model_dump(),
+        status="completed",
+        usage_bytes=0,
+        _metadata=vector_store.metadata,
+        created_at=int(time.time()),
+    )
+    db.add(db_vector_store)
+    db.commit()
+    db.refresh(db_vector_store)
+    return db_vector_store
+
+
+def update_vector_store(db: Session, vector_store_id: str, updates: dict):
+    db_vector_store = (
+        db.query(models.VectorStore)
+        .filter(models.VectorStore.id == vector_store_id)
+        .first()
+    )
+    if db_vector_store:
+        for key, value in updates.items():
+            if value:
+                if key == "metadata":
+                    setattr(db_vector_store, "_metadata", value)
+                else:
+                    setattr(db_vector_store, key, value)
+        db.commit()
+        db.refresh(db_vector_store)
+        return db_vector_store
+    return None

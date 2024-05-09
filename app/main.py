@@ -6,6 +6,7 @@ from routers import (
     message_router,
     run_router,
     runsteps_router,
+    vectorstore_router,
 )
 from routers.ops import run_ops_router, runsteps_ops_router
 from lib.db.database import engine
@@ -51,6 +52,7 @@ app.include_router(threads_router.router)
 app.include_router(message_router.router)
 app.include_router(run_router.router)
 app.include_router(runsteps_router.router)
+app.include_router(vectorstore_router.router)
 
 # ops routers
 app.include_router(run_ops_router.router)

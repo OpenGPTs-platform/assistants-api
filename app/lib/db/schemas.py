@@ -7,6 +7,11 @@ from enum import Enum
 
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
+from openai.types.beta.vector_store import (
+    VectorStore,
+    FileCounts,
+    ExpiresAfter,
+)
 
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
@@ -24,6 +29,9 @@ Message  # database stored message, typically used for output
 SyncCursorPage
 Run
 RunStep
+VectorStore
+FileCounts,
+ExpiresAfter
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -147,3 +155,16 @@ class RunStepUpdate(BaseModel):
     step_details: StepDetails = None
     type: Literal["message_creation", "tool_calls"] = None
     usage: Optional[Dict[str, Any]] = None
+
+
+class VectorStoreCreate(BaseModel):
+    file_ids: Optional[List[str]] = Field(
+        default=[], description="A list of file IDs for the vector store."
+    )
+    name: str = Field(..., description="The name of the vector store.")
+    expires_after: Optional[ExpiresAfter] = Field(
+        None, description="The expiration policy for the vector store."
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        None, description="Metadata for additional structured information."
+    )

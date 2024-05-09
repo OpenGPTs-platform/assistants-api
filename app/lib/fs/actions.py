@@ -28,5 +28,11 @@ def upload_file(
     )
 
 
+def get_file_binary(
+    minio_client: Minio, bucket_name: str, file_id: str
+) -> bytes:
+    return minio_client.get_object(bucket_name, file_id).read()
+
+
 def delete_file(minio_client: Minio, bucket_name: str, file_id: str) -> None:
     minio_client.remove_object(bucket_name, file_id)

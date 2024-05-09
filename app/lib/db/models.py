@@ -179,6 +179,7 @@ class VectorStore(Base):
     last_active_at = Column(Integer, nullable=True)
     _metadata = Column("metadata", JSON, nullable=True)
     name = Column(String(256), nullable=False)
+    object = Column(String, nullable=False, default="vector_store")
     status = Column(
         Enum(
             "in_progress",

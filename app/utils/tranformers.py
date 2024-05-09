@@ -51,3 +51,13 @@ def db_to_pydantic_runstep(
     run_step_dict["metadata"] = run_step_dict["_metadata"]
     del run_step_dict["_metadata"]
     return schemas.RunStep(**run_step_dict)
+
+
+def db_to_pydantic_vector_store(
+    db_vector_store: models.VectorStore,
+) -> schemas.VectorStore:
+    vector_store_dict = db_vector_store.__dict__
+    del vector_store_dict["_sa_instance_state"]
+    vector_store_dict["metadata"] = vector_store_dict["_metadata"]
+    del vector_store_dict["_metadata"]
+    return schemas.VectorStore(**vector_store_dict)
