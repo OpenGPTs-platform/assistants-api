@@ -29,7 +29,10 @@ async def create_file(
         raise HTTPException(status_code=400, detail="File is empty")
 
     uploaded_file = actions.upload_file(
-        minio_client=minio_client, bucket_name=BUCKET_NAME, file=file
+        minio_client=minio_client,
+        bucket_name=BUCKET_NAME,
+        file=file,
+        file_data=file_data_bytes,
     )
 
     crud.create_file(db=db, file=uploaded_file)

@@ -89,17 +89,20 @@ def test_create_vector_store_with_files(
 
     # assert response.usage_bytes > 5700
 
-    # if not use_openai:
-    #     assert (
-    #         weaviate_client.collections.exists(id_to_string(response.id))
-    #         is True
-    #     )
+    if not use_openai:
+        assert (
+            weaviate_client.collections.exists(id_to_string(response.id))
+            is True
+        )
+        print("id_to_string(response.id):", id_to_string(response.id))
+        collection = weaviate_client.collections.get(id_to_string(response.id))
 
-    #     collection = weaviate_client.collections.get(id_to_string(response.id))
+        res = collection.query.near_text(
+            query="Here is a second line of text", limit=1
+        )
 
-    #     res = collection.query.near_text(
-    #         query="Here is a second line of text",
-    #         limit=1
-    #     )
-
-    #     assert "Here is a second line of text" in res.objects[0].properties["text"]
+        assert len(res.objects) == 1
+        assert (
+            "Here is a second line of text"
+            in res.objects[0].properties["text"]
+        )
