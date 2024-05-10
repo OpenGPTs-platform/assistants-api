@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from utils.tranformers import db_to_pydantic_vector_store
 from lib.db import crud, schemas, database
@@ -76,3 +76,17 @@ def create_vector_store(
         vector_store_model.file_counts = file_counts
 
     return vector_store_model
+
+
+@router.get(
+    "/vector_stores/{vector_store_id}", response_model=schemas.VectorStore
+)
+def read_vector_store(
+    vector_store_id: str, db: Session = Depends(database.get_db)
+):
+    db_vector_store = crud.get_vector_store(
+        db, vector_store_id=vector_store_id
+    )
+    if db_vector_store is None:
+        raise HTTPException(status_code=404, detail="Vector store not found")
+    return db_to_pydantic_vector_store(db_vector_store)

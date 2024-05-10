@@ -515,3 +515,11 @@ def update_vector_store(db: Session, vector_store_id: str, updates: dict):
         db.refresh(db_vector_store)
         return db_vector_store
     return None
+
+
+def get_vector_store(db: Session, vector_store_id: str):
+    return (
+        db.query(models.VectorStore)
+        .filter(models.VectorStore.id == vector_store_id)
+        .first()
+    )
