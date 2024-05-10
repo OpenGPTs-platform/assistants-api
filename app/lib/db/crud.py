@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy.orm import Session
 import time
 from sqlalchemy import desc, asc
@@ -523,3 +524,52 @@ def get_vector_store(db: Session, vector_store_id: str):
         .filter(models.VectorStore.id == vector_store_id)
         .first()
     )
+
+
+def get_vector_stores(
+    db: Session,
+    limit: int,
+    order: str,
+    after: Optional[str] = None,
+    before: Optional[str] = None,
+):
+    query = db.query(models.VectorStore)
+
+    # Order the query based on the created_at timestamp and ID
+    if order == "asc":
+        query = query.order_by(
+            asc(models.VectorStore.created_at), asc(models.VectorStore.id)
+        )
+    else:
+        query = query.order_by(
+            desc(models.VectorStore.created_at), desc(models.VectorStore.id)
+        )
+
+    # Apply pagination filters
+    if after:
+        # Get the 'after' vector store to determine the pagination start
+        last_seen_store = (
+            db.query(models.VectorStore)
+            .filter(models.VectorStore.id == after)
+            .first()
+        )
+        if last_seen_store:
+            query = query.filter(
+                (models.VectorStore.created_at, models.VectorStore.id)
+                > (last_seen_store.created_at, last_seen_store.id)
+            )
+
+    if before:
+        # Get the 'before' vector store to determine the pagination end
+        first_seen_store = (
+            db.query(models.VectorStore)
+            .filter(models.VectorStore.id == before)
+            .first()
+        )
+        if first_seen_store:
+            query = query.filter(
+                (models.VectorStore.created_at, models.VectorStore.id)
+                < (first_seen_store.created_at, first_seen_store.id)
+            )
+
+    return query.limit(limit).all()

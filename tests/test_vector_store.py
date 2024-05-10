@@ -77,74 +77,74 @@ def vector_store_2_files(openai_client: OpenAI, file_txt, file_pdf):
     )
 
 
-# def test_create_vector_store(openai_client: OpenAI):
-#     response = openai_client.beta.vector_stores.create(
-#         name="Example Vector Store",
-#         metadata={"example_key": "example_value"},
-#     )
-#     assert isinstance(response, VectorStore)
-#     assert response.id is not None
-#     assert response.created_at is not None
-#     assert response.name == "Example Vector Store"
-#     assert response.metadata == {"example_key": "example_value"}
-#     assert response.status == "completed"
-#     assert response.file_counts.total == 0
-#     assert response.usage_bytes == 0
+def test_create_vector_store(openai_client: OpenAI):
+    response = openai_client.beta.vector_stores.create(
+        name="Example Vector Store",
+        metadata={"example_key": "example_value"},
+    )
+    assert isinstance(response, VectorStore)
+    assert response.id is not None
+    assert response.created_at is not None
+    assert response.name == "Example Vector Store"
+    assert response.metadata == {"example_key": "example_value"}
+    assert response.status == "completed"
+    assert response.file_counts.total == 0
+    assert response.usage_bytes == 0
 
 
-# @pytest.mark.dependency()
-# def test_create_vector_store_with_files(
-#     openai_client: OpenAI, weaviate_client: weaviate.client.WeaviateClient
-# ):
-#     with open("./tests/test.txt", "rb") as file:
-#         file_txt = openai_client.files.create(file=file, purpose="assistants")
-#     with open("./tests/test.pdf", "rb") as file:
-#         file_pdf = openai_client.files.create(file=file, purpose="assistants")
+@pytest.mark.dependency()
+def test_create_vector_store_with_files(
+    openai_client: OpenAI, weaviate_client: weaviate.client.WeaviateClient
+):
+    with open("./tests/test.txt", "rb") as file:
+        file_txt = openai_client.files.create(file=file, purpose="assistants")
+    with open("./tests/test.pdf", "rb") as file:
+        file_pdf = openai_client.files.create(file=file, purpose="assistants")
 
-#     response = openai_client.beta.vector_stores.create(
-#         name="Example Vector Store",
-#         metadata={"example_key": "example_value"},
-#         file_ids=[file_txt.id, file_pdf.id],
-#     )
+    response = openai_client.beta.vector_stores.create(
+        name="Example Vector Store",
+        metadata={"example_key": "example_value"},
+        file_ids=[file_txt.id, file_pdf.id],
+    )
 
-#     assert isinstance(response, VectorStore)
-#     assert response.id is not None
-#     assert response.file_counts.total == 2
+    assert isinstance(response, VectorStore)
+    assert response.id is not None
+    assert response.file_counts.total == 2
 
-#     # # wait untill uploads are completed
-#     # max_checks = 5
-#     # check_interval = 2
-#     # for _ in range(max_checks):
-#     #     time.sleep(check_interval)
-#     #     response = openai_client.beta.vector_stores.retrieve(response.id)
+    # # wait untill uploads are completed
+    # max_checks = 5
+    # check_interval = 2
+    # for _ in range(max_checks):
+    #     time.sleep(check_interval)
+    #     response = openai_client.beta.vector_stores.retrieve(response.id)
 
-#     #     assert response.status in ["in_progress", "completed"]
+    #     assert response.status in ["in_progress", "completed"]
 
-#     #     if response.status == "completed":
-#     #         break
-#     # else:
-#     #     # If the loop completes without breaking, assert failure due to timeout
-#     #     assert False, "Run did not complete within the expected time."
+    #     if response.status == "completed":
+    #         break
+    # else:
+    #     # If the loop completes without breaking, assert failure due to timeout
+    #     assert False, "Run did not complete within the expected time."
 
-#     # assert response.usage_bytes > 5700
+    # assert response.usage_bytes > 5700
 
-#     if not use_openai:
-#         assert (
-#             weaviate_client.collections.exists(id_to_string(response.id))
-#             is True
-#         )
-#         print("id_to_string(response.id):", id_to_string(response.id))
-#         collection = weaviate_client.collections.get(id_to_string(response.id))
+    if not use_openai:
+        assert (
+            weaviate_client.collections.exists(id_to_string(response.id))
+            is True
+        )
+        print("id_to_string(response.id):", id_to_string(response.id))
+        collection = weaviate_client.collections.get(id_to_string(response.id))
 
-#         res = collection.query.near_text(
-#             query="Here is a second line of text", limit=1
-#         )
+        res = collection.query.near_text(
+            query="Here is a second line of text", limit=1
+        )
 
-#         assert len(res.objects) == 1
-#         assert (
-#             "Here is a second line of text"
-#             in res.objects[0].properties["text"]
-#         )
+        assert len(res.objects) == 1
+        assert (
+            "Here is a second line of text"
+            in res.objects[0].properties["text"]
+        )
 
 
 # @pytest.mark.dependency(depends=["test_create_vector_store"])
@@ -160,17 +160,58 @@ def test_retrieve_vector_store(openai_client: OpenAI, vector_store_1_file):
     assert response.file_counts.total == 1
 
 
-# # @pytest.mark.dependency(depends=["test_retrieve_vector_store"])
-# @pytest.mark.dependency()
-# def test_list_vector_stores(
-#     openai_client: OpenAI, vector_store, vector_store_1_file
-# ):
-#     response = openai_client.beta.vector_stores.list()
-#     assert isinstance(response.data, list)
-#     assert len(response.data) >= 2
-#     assert all(isinstance(item, VectorStore) for item in response)
+@pytest.mark.dependency(depends=["test_retrieve_vector_store"])
+def test_list_vector_stores(
+    openai_client: OpenAI, vector_store, vector_store_1_file
+):
+    response = openai_client.beta.vector_stores.list()
+    assert isinstance(response.data, list)
+    assert len(response.data) >= 2
+    assert all(isinstance(item, VectorStore) for item in response)
 
-#     vector_store_id = response.data[0].id
-#     response = openai_client.beta.vector_stores.retrieve(vector_store_id)
-#     assert isinstance(response, VectorStore)
-#     assert response.id == vector_store_id
+    vector_store_id = response.data[0].id
+    response = openai_client.beta.vector_stores.retrieve(vector_store_id)
+    assert isinstance(response, VectorStore)
+    assert response.id == vector_store_id
+
+
+@pytest.mark.dependency(depends=["test_list_vector_stores"])
+def test_list_vector_stores_limit_and_order(openai_client: OpenAI):
+    # get the vector stores in ascending order
+    asc_response = openai_client.beta.vector_stores.list(order='asc')
+    assert isinstance(asc_response.data, list)
+    assert len(asc_response.data) >= 2
+    assert (
+        asc_response.data[0].created_at < asc_response.data[1].created_at
+    ), "Vector stores should be in ascending order"
+
+    # get only the first vector store in ascending order
+    response = openai_client.beta.vector_stores.list(limit=1, order='asc')
+    assert len(response.data) == 1, "Should retrieve at least one vector store"
+    assert (
+        response.data[0].id == asc_response.data[0].id
+    ), "Should retrieve the first vector store"
+
+
+@pytest.mark.dependency(depends=["test_list_vector_stores"])
+def test_list_vector_stores_pagination_after(openai_client: OpenAI):
+    # List the first batch to get an ID to use for 'after'
+    initial_response = openai_client.beta.vector_stores.list(
+        limit=1, order='asc'
+    )
+    assert (
+        len(initial_response.data) == 1
+    ), "Should retrieve at least one vector store"
+
+    # Use the ID of the first vector store to list subsequent stores
+    after_item = initial_response.data[0]
+    subsequent_response = openai_client.beta.vector_stores.list(
+        limit=1, order='asc', after=after_item.id
+    )
+    assert len(subsequent_response.data) == 1
+    assert (
+        subsequent_response.data[0].id != after_item.id
+    ), "Should not retrieve the initial vector store"
+    assert (
+        subsequent_response.data[0].created_at > after_item.created_at
+    ), "Should retrieve vector stores after the specified ID"

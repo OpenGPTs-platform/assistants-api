@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from utils.tranformers import db_to_pydantic_vector_store
 from lib.db import crud, schemas, database
@@ -90,3 +91,33 @@ def read_vector_store(
     if db_vector_store is None:
         raise HTTPException(status_code=404, detail="Vector store not found")
     return db_to_pydantic_vector_store(db_vector_store)
+
+
+@router.get(
+    "/vector_stores",
+    response_model=schemas.SyncCursorPage[schemas.VectorStore],
+)
+def list_vector_stores(
+    db: Session = Depends(database.get_db),
+    limit: int = Query(default=20, le=100),
+    order: str = Query(default="desc", regex="^(asc|desc)$"),
+    after: Optional[str] = None,
+    before: Optional[str] = None,
+):
+    """
+    List vector stores with optional pagination and ordering.
+    - **limit**: Maximum number of results to return.
+    - **order**: Sort order based on the creation time ('asc' or 'desc').
+    - **after**: ID to start the list from (for pagination).
+    - **before**: ID to list up to (for pagination).
+    """
+    vector_stores = crud.get_vector_stores(
+        db=db, limit=limit, order=order, after=after, before=before
+    )
+
+    vector_store_data = [
+        db_to_pydantic_vector_store(store) for store in vector_stores
+    ]
+    paginated_vector_stores = schemas.SyncCursorPage(data=vector_store_data)
+
+    return paginated_vector_stores
