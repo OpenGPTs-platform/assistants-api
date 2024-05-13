@@ -81,13 +81,20 @@ class Message(Base):
     role = Column(Enum('user', 'assistant', name='role_types'), nullable=False)
     content = Column(
         ARRAY(JSON), nullable=False
-    )  # To store structured content including text and images
+    )  # Structured content (text/images)
+    attachments = Column(JSON, nullable=True)
     assistant_id = Column(String, nullable=True)
     run_id = Column(String, nullable=True)
-    file_ids = Column(ARRAY(String), nullable=True)  # Stores up to 10 file IDs
     _metadata = Column("metadata", JSON, nullable=True)
+    status = Column(
+        Enum('in_progress', 'incomplete', 'completed', name='status_types'),
+        nullable=False,
+        default='in_progress',
+    )
+    completed_at = Column(Integer, nullable=True)
+    incomplete_at = Column(Integer, nullable=True)
+    incomplete_details = Column(JSON, nullable=True)
 
-    # Establish a relationship to the Thread model
     thread = relationship("Thread", back_populates="messages")
 
 

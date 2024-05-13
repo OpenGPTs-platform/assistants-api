@@ -93,7 +93,8 @@ def update_assistant(db: Session, assistant_id: str, assistant_update: dict):
         for key, value in assistant_update.items():
             if value:
                 if key == "metadata":
-                    setattr(db_assistant, "_metadata", value)
+                    updated_metadata = {**db_assistant._metadata, **value}
+                    setattr(db_assistant, "_metadata", updated_metadata)
                 else:
                     setattr(db_assistant, key, value)
         db.commit()
@@ -170,7 +171,8 @@ def update_thread(db: Session, thread_id: str, thread_data: dict):
         for key, value in thread_data.items():
             if value:
                 if key == "metadata":
-                    setattr(db_thread, "_metadata", value)
+                    updated_metadata = {**db_thread._metadata, **value}
+                    setattr(db_thread, "_metadata", updated_metadata)
                 else:
                     setattr(db_thread, key, value)
         db.commit()
@@ -192,23 +194,28 @@ def delete_thread(db: Session, thread_id: str) -> bool:
 
 # MESSAGE
 def create_message(
-    db: Session, thread_id: str, message: schemas.MessageContent, time_shift=0
+    db: Session,
+    thread_id: str,
+    message_inp: schemas.MessageInput,
+    time_shift=0,
 ):
     # Create a new Message object
+    message_content = schemas.TextContentBlock(
+        text=schemas.Text(annotations=[], value=message_inp.content),
+        type="text",
+    )  # TODO: will need to update this for
     db_message = models.Message(
         id=str(uuid.uuid4()),
         thread_id=thread_id,
         object="thread.message",
-        role=message.role,
-        content=[
-            {
-                "type": "text",
-                "text": {"annotations": [], "value": message.content},
-            }
-        ],  # TODO: no idea what annotations does
+        role=message_inp.role,
+        content=[message_content.model_dump()],
         created_at=int(time.time()) + time_shift,
-        file_ids=message.file_ids or [],
-        _metadata=message.metadata or {},
+        attachments=message_inp.attachments if message_inp.attachments else [],
+        assistant_id=None,  # Assuming this needs to be set in some other part of your application # noqa
+        run_id=None,  # Same as above
+        _metadata=message_inp.metadata if message_inp.metadata else {},
+        status='completed',  # TODO: the status should be updated over time
     )
 
     # Add the new message to the session and commit
@@ -291,7 +298,8 @@ def update_message(
                 value is not None
             ):  # Allowing updates with falsy values like 0 or False
                 if key == "metadata":
-                    setattr(db_message, "_metadata", value)
+                    updated_metadata = {**db_message._metadata, **value}
+                    setattr(db_message, "_metadata", updated_metadata)
                 else:
                     setattr(db_message, key, value)
         db.commit()

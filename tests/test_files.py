@@ -44,7 +44,7 @@ def openai_client():
 
 @pytest.mark.dependency()
 def test_create_file(openai_client: OpenAI, minio_client: Minio):
-    with open('./tests/test.txt', 'rb') as file:
+    with open('./assets/test.txt', 'rb') as file:
         response = openai_client.files.create(file=file, purpose="assistants")
     assert isinstance(response, FileObject)
     assert response.id == response.id
@@ -60,7 +60,7 @@ def test_create_file(openai_client: OpenAI, minio_client: Minio):
 
 
 def test_create_file_pdf(openai_client: OpenAI):
-    with open('./tests/test.pdf', 'rb') as file:
+    with open('./assets/test.pdf', 'rb') as file:
         response = openai_client.files.create(file=file, purpose="assistants")
     assert isinstance(response, FileObject)
     assert response.id == response.id
@@ -73,7 +73,7 @@ def test_create_file_pdf(openai_client: OpenAI):
 @pytest.mark.dependency(depends=["test_create_file"])
 def test_retrieve_file(openai_client: OpenAI):
     # Assuming you have a file ID to test with
-    with open('./tests/test.txt', 'rb') as file:
+    with open('./assets/test.txt', 'rb') as file:
         file_created = openai_client.files.create(
             file=file, purpose="assistants"
         )
@@ -90,7 +90,7 @@ def test_retrieve_file(openai_client: OpenAI):
 @pytest.mark.dependency(depends=["test_create_file", "test_retrieve_file"])
 def test_delete_file(openai_client: OpenAI):
     # Step 1: Create a file
-    with open('./tests/test.txt', 'rb') as file:
+    with open('./assets/test.txt', 'rb') as file:
         create_response = openai_client.files.create(
             file=file, purpose="assistants"
         )

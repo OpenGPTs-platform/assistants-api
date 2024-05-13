@@ -18,11 +18,15 @@ from openai.types.beta.vector_stores.vector_store_file_batch import (
 
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
+from openai.types.beta.threads.message_create_params import Attachment
 from openai.types.beta.threads.runs import (
     RunStep,
     MessageCreationStepDetails,
     ToolCallsStepDetails,
 )
+from openai.types.beta.threads.text_content_block import TextContentBlock
+from openai.types.beta.threads.text import Text
+
 
 Assistant
 AssistantDeleted
@@ -36,6 +40,8 @@ VectorStore
 FileCounts,
 ExpiresAfter,
 VectorStoreFileBatch
+TextContentBlock
+Text
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -73,20 +79,20 @@ class AssistantUpdate(BaseModel):
     file_ids: Optional[List[str]] = Field(None)
 
 
-class MessageContent(BaseModel):  # input for message data
-    role: str
+class MessageInput(BaseModel):  # Input for message data
+    role: Literal["user", "assistant"]
     content: str
-    file_ids: Optional[List[str]] = Field(default=[])
-    metadata: Optional[Dict[str, str]] = Field(default={})
+    metadata: Optional[Dict[str, str]] = Field(default_factory=dict)
+    attachments: Optional[List[Attachment]] = Field(default_factory=list)
 
 
 class ThreadCreate(BaseModel):
-    messages: Optional[List[MessageContent]] = Field(default=[])
+    messages: Optional[List[MessageInput]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
 
 
 class ThreadUpdate(BaseModel):
-    messages: Optional[List[MessageContent]] = Field(default=[])
+    messages: Optional[List[MessageInput]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
 
 

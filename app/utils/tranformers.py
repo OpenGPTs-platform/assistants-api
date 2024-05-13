@@ -29,7 +29,6 @@ def db_to_pydantic_message(
 ) -> schemas.Message:
     message_dict = db_message.__dict__
     message_dict = message_dict.copy()
-    print("DB TO PY", message_dict)
     del message_dict["_sa_instance_state"]
     message_dict["metadata"] = message_dict["_metadata"]
     del message_dict["_metadata"]

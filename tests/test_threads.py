@@ -79,7 +79,7 @@ def test_delete_thread(openai_client: OpenAI, thread_id: str):
         openai_client.beta.threads.retrieve(thread_id=thread_id)
     except Exception as e:
         assert e.status_code == 404
-        assert "No thread found" in str(e)
+        assert "Thread not found" in str(e)
     else:
         raise AssertionError("Thread was not deleted")
 

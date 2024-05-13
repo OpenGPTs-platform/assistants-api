@@ -187,6 +187,6 @@ def test_delete_assistant(openai_client: OpenAI):
         openai_client.beta.assistants.retrieve(new_assistant.id)
     except Exception as e:
         assert e.status_code == 404
-        assert "No assistant found" in str(e)
+        assert "Assistant not found" in str(e)
     else:
         raise AssertionError("Assistant was not deleted")
