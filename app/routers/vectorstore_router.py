@@ -1,7 +1,10 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from utils.tranformers import db_to_pydantic_vector_store
+from utils.tranformers import (
+    db_to_pydantic_vector_store,
+    db_to_pydantic_vector_store_file_batch,
+)
 from lib.db import crud, schemas, database
 from minio import Minio
 from lib.wv import actions as wv_actions
@@ -38,11 +41,60 @@ def create_vector_store(
     return vector_store_model
 
 
+@router.post(
+    "/vector_stores/{vector_store_id}/file_batches",
+    response_model=schemas.VectorStoreFileBatch,
+)
+def create_vector_store_file_batch(
+    background_tasks: BackgroundTasks,
+    vector_store_id: str,
+    file_batch: schemas.CreateVectorStoreFileBatchRequest,
+    db: Session = Depends(database.get_db),
+    minio_client: Minio = Depends(minio_client),
+):
+    # Check if vector store exists
+    db_vector_store = crud.get_vector_store(db, vector_store_id)
+    if not db_vector_store:
+        raise HTTPException(status_code=404, detail="Vector store not found")
+    vector_store = db_to_pydantic_vector_store(db_vector_store)
+
+    # Create file batch
+    db_file_batch = crud.create_file_batch(
+        db, vector_store.id, file_batch.file_ids
+    )
+    file_batch_model = db_to_pydantic_vector_store_file_batch(db_file_batch)
+
+    # Process files in the background
+    background_tasks.add_task(
+        process_files,
+        vector_store,
+        file_batch.file_ids,
+        db,
+        minio_client,
+        file_batch_model,
+    )
+
+    return file_batch_model
+
+
 def process_files(
-    vector_store_model: schemas.VectorStore, file_ids, db, minio_client
+    vector_store_model: schemas.VectorStore,
+    file_ids,
+    db,
+    minio_client,
+    vector_store_file_batch: Optional[schemas.VectorStoreFileBatch] = None,
 ):
     # Retrieve the existing vector store to update
-    status = vector_store_model.status
+    vector_store_model.file_counts.in_progress = len(file_ids)
+
+    if vector_store_file_batch:
+        vector_store_file_batch.file_counts.in_progress = len(file_ids)
+
+    status = (
+        "in_progress"
+        if vector_store_model.file_counts.in_progress > 0
+        else "completed"
+    )
     usage_bytes = 0
 
     # Process each file
@@ -56,6 +108,15 @@ def process_files(
                 "status": status,
             },
         )
+        if vector_store_file_batch:
+            crud.update_file_batch(
+                db,
+                vector_store_file_batch.id,
+                {
+                    "file_counts": vector_store_file_batch.file_counts.model_dump(),
+                    "status": status,
+                },
+            )
         try:
             file_data = fs_actions.get_file_binary(
                 minio_client, BUCKET_NAME, file_id
@@ -72,18 +133,32 @@ def process_files(
             )
             usage_bytes += len(file_data)
             vector_store_model.file_counts.completed += 1
+            if vector_store_file_batch:
+                vector_store_file_batch.file_counts.completed += 1
         except Exception as e:
             print(
                 f"Error processing file '{file_metadata.filename}': {str(e)}"
             )
             vector_store_model.file_counts.failed += 1
+            if vector_store_file_batch:
+                vector_store_file_batch.file_counts.failed += 1
         finally:
             vector_store_model.file_counts.in_progress -= 1
+            vector_store_model.file_counts.total += 1
+            if vector_store_file_batch:
+                vector_store_file_batch.file_counts.in_progress -= 1
+                vector_store_file_batch.file_counts.total += 1
             status = (
                 "completed"
                 if vector_store_model.file_counts.in_progress == 0
                 else "in_progress"
             )
+
+    status = (
+        "in_progress"
+        if vector_store_model.file_counts.in_progress > 0
+        else "completed"
+    )
 
     # Update the vector store with the final counts and usage bytes
     crud.update_vector_store(

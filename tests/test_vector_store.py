@@ -102,7 +102,7 @@ def test_retrieve_vector_store(openai_client: OpenAI, vector_store_1_file):
     assert response.id == vector_store_1_file.id
     assert response.name == "Example Vector Store"
     assert response.metadata == {"example_key": "example_value"}
-    assert response.file_counts.total == 1
+    assert response.file_counts.in_progress == 1
 
 
 @pytest.mark.dependency(
@@ -219,31 +219,31 @@ def test_list_vector_stores_pagination_after(openai_client: OpenAI):
     ), "Should retrieve vector stores after the specified ID"
 
 
-# @pytest.mark.dependency(depends=["test_retrieve_vector_store"])
-# def test_add_file_vector_store(openai_client: OpenAI, vector_store, file_txt):
-#     assert vector_store.file_counts.total == 0
-#     assert vector_store.usage_bytes == 0
-#     openai_client.beta.vector_stores.file_batches.create(
-#         vector_store_id=vector_store.id, file_ids=[file_txt.id]
-#     )
-#     # wait untill uploads are completed
-#     max_checks = 5
-#     check_interval = 2
-#     for _ in range(max_checks):
-#         time.sleep(check_interval)
-#         vector_store = openai_client.beta.vector_stores.retrieve(
-#             vector_store.id
-#         )
+@pytest.mark.dependency(depends=["test_retrieve_vector_store"])
+def test_add_file_vector_store(openai_client: OpenAI, vector_store, file_txt):
+    assert vector_store.file_counts.total == 0
+    assert vector_store.usage_bytes == 0
+    openai_client.beta.vector_stores.file_batches.create(
+        vector_store_id=vector_store.id, file_ids=[file_txt.id]
+    )
+    # wait untill uploads are completed
+    max_checks = 5
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        vector_store = openai_client.beta.vector_stores.retrieve(
+            vector_store.id
+        )
 
-#         assert vector_store.status in ["in_progress", "completed"]
+        assert vector_store.status in ["in_progress", "completed"]
 
-#         if vector_store.status == "completed":
-#             break
-#     else:
-#         # If the loop completes without breaking, assert failure due to timeout
-#         assert False, "Run did not complete within the expected time."
+        if vector_store.status == "completed":
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
 
-#     assert vector_store.usage_bytes > 100
-#     assert vector_store.status == "completed"
-#     assert vector_store.file_counts.total == 1
-#     assert vector_store.file_counts.completed == 1
+    assert vector_store.usage_bytes > 100
+    assert vector_store.status == "completed"
+    assert vector_store.file_counts.total == 1
+    assert vector_store.file_counts.completed == 1

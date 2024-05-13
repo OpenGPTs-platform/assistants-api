@@ -193,3 +193,23 @@ class VectorStore(Base):
     file_counts = Column(JSON, nullable=False)
     expires_after = Column(JSON, nullable=True)
     expires_at = Column(Integer, nullable=True)
+
+
+class VectorStoreFileBatch(Base):
+    __tablename__ = "vector_store_file_batches"
+
+    id = Column(String, primary_key=True, index=True)
+    created_at = Column(Integer, nullable=False)
+    vector_store_id = Column(String, index=True, nullable=False)
+    object = Column(String, nullable=False, default="vector_store.files_batch")
+    status = Column(
+        Enum(
+            "in_progress",
+            "completed",
+            "cancelled",
+            "failed",
+            name="batch_status",
+        ),
+        default="in_progress",
+    )
+    file_counts = Column(JSON, nullable=False)

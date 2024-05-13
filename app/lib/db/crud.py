@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 import time
 from sqlalchemy import desc, asc
@@ -484,7 +484,7 @@ def create_vector_store(db: Session, vector_store: schemas.VectorStoreCreate):
         completed=0,
         failed=0,
         in_progress=len(vector_store.file_ids),
-        total=len(vector_store.file_ids),
+        total=0,
     )
 
     # if in FileCounts in progress then status is in_progress else status is completed
@@ -580,3 +580,41 @@ def get_vector_stores(
             )
 
     return query.limit(limit).all()
+
+
+def create_file_batch(db: Session, vector_store_id: str, file_ids: List[str]):
+    file_counts = schemas.FileCounts(
+        cancelled=0,
+        completed=0,
+        failed=0,
+        in_progress=len(file_ids),
+        total=0,
+    )
+    new_batch = models.VectorStoreFileBatch(
+        id="vsfb_" + str(uuid.uuid4()),
+        created_at=int(time.time()),
+        vector_store_id=vector_store_id,
+        status="in_progress",
+        file_counts=file_counts.model_dump(),
+        object="vector_store.files_batch",
+    )
+    db.add(new_batch)
+    db.commit()
+    db.refresh(new_batch)
+    return new_batch
+
+
+def update_file_batch(db: Session, file_batch_id: str, updates: dict):
+    db_vector_store = (
+        db.query(models.VectorStoreFileBatch)
+        .filter(models.VectorStoreFileBatch.id == file_batch_id)
+        .first()
+    )
+    if db_vector_store:
+        for key, value in updates.items():
+            if value:
+                setattr(db_vector_store, key, value)
+        db.commit()
+        db.refresh(db_vector_store)
+        return db_vector_store
+    return None

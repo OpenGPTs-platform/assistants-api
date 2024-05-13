@@ -12,6 +12,9 @@ from openai.types.beta.vector_store import (
     FileCounts,
     ExpiresAfter,
 )
+from openai.types.beta.vector_stores.vector_store_file_batch import (
+    VectorStoreFileBatch,
+)
 
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
@@ -31,7 +34,8 @@ Run
 RunStep
 VectorStore
 FileCounts,
-ExpiresAfter
+ExpiresAfter,
+VectorStoreFileBatch
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -167,4 +171,10 @@ class VectorStoreCreate(BaseModel):
     )
     metadata: Optional[Dict[str, str]] = Field(
         None, description="Metadata for additional structured information."
+    )
+
+
+class CreateVectorStoreFileBatchRequest(BaseModel):
+    file_ids: List[str] = Field(
+        ..., min_items=1, max_items=500, example=["file-abc123", "file-abc456"]
     )

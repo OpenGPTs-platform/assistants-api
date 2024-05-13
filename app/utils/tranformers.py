@@ -67,3 +67,12 @@ def db_to_pydantic_vector_store(
     vector_store_dict["metadata"] = vector_store_dict["_metadata"]
     del vector_store_dict["_metadata"]
     return schemas.VectorStore(**vector_store_dict)
+
+
+def db_to_pydantic_vector_store_file_batch(
+    db_vector_store_file_batch: models.VectorStoreFileBatch,
+) -> schemas.VectorStoreFileBatch:
+    vector_store_file_batch_dict = db_vector_store_file_batch.__dict__
+    vector_store_file_batch_dict = vector_store_file_batch_dict.copy()
+    del vector_store_file_batch_dict["_sa_instance_state"]
+    return schemas.VectorStoreFileBatch(**vector_store_file_batch_dict)
