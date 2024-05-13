@@ -480,15 +480,22 @@ def create_vector_store(db: Session, vector_store: schemas.VectorStoreCreate):
         vector_store.expires_after if vector_store.expires_after else None
     )
     file_counts = schemas.FileCounts(
-        cancelled=0, completed=0, failed=0, in_progress=0, total=0
+        cancelled=0,
+        completed=0,
+        failed=0,
+        in_progress=len(vector_store.file_ids),
+        total=len(vector_store.file_ids),
     )
+
+    # if in FileCounts in progress then status is in_progress else status is completed
+    status = "in_progress" if (file_counts.in_progress > 0) else "completed"
 
     db_vector_store = models.VectorStore(
         id="vs_" + str(uuid.uuid4()),
         name=vector_store.name,
         expires_after=expiration_after,
         file_counts=file_counts.model_dump(),
-        status="completed",
+        status=status,
         usage_bytes=0,
         _metadata=vector_store.metadata,
         created_at=int(time.time()),

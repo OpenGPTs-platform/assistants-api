@@ -29,7 +29,7 @@ def create_vector_store(
     if vector_store.file_ids:
         background_tasks.add_task(
             process_files,
-            db_vector_store.id,
+            vector_store_model,
             vector_store.file_ids,
             db,
             minio_client,
@@ -38,25 +38,22 @@ def create_vector_store(
     return vector_store_model
 
 
-def process_files(vector_store_id, file_ids, db, minio_client):
+def process_files(
+    vector_store_model: schemas.VectorStore, file_ids, db, minio_client
+):
     # Retrieve the existing vector store to update
-    file_counts = schemas.FileCounts(
-        cancelled=0,
-        completed=0,
-        failed=0,
-        in_progress=len(file_ids),
-        total=len(file_ids),
-    )
+    status = vector_store_model.status
     usage_bytes = 0
 
     # Process each file
     for file_id in file_ids:
         crud.update_vector_store(
             db,
-            vector_store_id,
+            vector_store_model.id,
             {
-                "file_counts": file_counts.model_dump(),
+                "file_counts": vector_store_model.file_counts.model_dump(),
                 "usage_bytes": usage_bytes,
+                "status": status,
             },
         )
         try:
@@ -68,25 +65,34 @@ def process_files(vector_store_id, file_ids, db, minio_client):
             )
 
             wv_actions.upload_file_chunks(
-                file_data, file_metadata.filename, file_id, vector_store_id
+                file_data,
+                file_metadata.filename,
+                file_id,
+                vector_store_model.id,
             )
             usage_bytes += len(file_data)
-            file_counts.completed += 1
+            vector_store_model.file_counts.completed += 1
         except Exception as e:
             print(
                 f"Error processing file '{file_metadata.filename}': {str(e)}"
             )
-            file_counts.failed += 1
+            vector_store_model.file_counts.failed += 1
         finally:
-            file_counts.in_progress -= 1
+            vector_store_model.file_counts.in_progress -= 1
+            status = (
+                "completed"
+                if vector_store_model.file_counts.in_progress == 0
+                else "in_progress"
+            )
 
     # Update the vector store with the final counts and usage bytes
     crud.update_vector_store(
         db,
-        vector_store_id,
+        vector_store_model.id,
         {
-            "file_counts": file_counts.model_dump(),
+            "file_counts": vector_store_model.file_counts.model_dump(),
             "usage_bytes": usage_bytes,
+            "status": status,
         },
     )
 
