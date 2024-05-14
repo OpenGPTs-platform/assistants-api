@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from utils.tranformers import (
@@ -10,6 +10,7 @@ from minio import Minio
 from lib.wv import actions as wv_actions
 from lib.fs.store import minio_client, BUCKET_NAME
 from lib.fs import actions as fs_actions
+import json
 
 
 router = APIRouter()
@@ -106,6 +107,7 @@ def process_files(
                 "file_counts": vector_store_model.file_counts.model_dump(),
                 "usage_bytes": usage_bytes,
                 "status": status,
+                "metadata": vector_store_model.metadata,
             },
         )
         if vector_store_file_batch:
@@ -133,6 +135,12 @@ def process_files(
             )
             usage_bytes += len(file_data)
             vector_store_model.file_counts.completed += 1
+            # update metadata _file_ids
+            file_ids: List[str] = json.loads(
+                vector_store_model.metadata["_file_ids"]
+            )
+            file_ids.append(file_id)
+            vector_store_model.metadata["_file_ids"] = json.dumps(file_ids)
             if vector_store_file_batch:
                 vector_store_file_batch.file_counts.completed += 1
         except Exception as e:
@@ -168,6 +176,7 @@ def process_files(
             "file_counts": vector_store_model.file_counts.model_dump(),
             "usage_bytes": usage_bytes,
             "status": status,
+            "metadata": vector_store_model.metadata,
         },
     )
 

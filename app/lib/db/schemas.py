@@ -170,7 +170,7 @@ class VectorStoreCreate(BaseModel):
         None, description="The expiration policy for the vector store."
     )
     metadata: Optional[Dict[str, str]] = Field(
-        None, description="Metadata for additional structured information."
+        {}, description="Metadata for additional structured information."
     )
 
 

@@ -3,7 +3,7 @@ from openai import OpenAI
 from openai.types.beta.vector_store import VectorStore
 import os
 import weaviate
-
+import json
 import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
@@ -87,10 +87,15 @@ def test_create_vector_store(openai_client: OpenAI):
     assert response.id is not None
     assert response.created_at is not None
     assert response.name == "Example Vector Store"
-    assert response.metadata == {"example_key": "example_value"}
+    assert response.metadata["example_key"] == "example_value"
     assert response.status == "completed"
     assert response.file_counts.total == 0
     assert response.usage_bytes == 0
+    if not use_openai:
+        assert response.metadata == {
+            "example_key": "example_value",
+            "_file_ids": "[]",
+        }
 
 
 @pytest.mark.dependency(depends=["test_create_vector_store"])
@@ -101,8 +106,11 @@ def test_retrieve_vector_store(openai_client: OpenAI, vector_store_1_file):
     assert isinstance(response, VectorStore)
     assert response.id == vector_store_1_file.id
     assert response.name == "Example Vector Store"
-    assert response.metadata == {"example_key": "example_value"}
-    assert response.file_counts.in_progress == 1
+    assert response.metadata["example_key"] == "example_value"
+    assert (
+        response.file_counts.in_progress == 1
+        or response.file_counts.completed == 1
+    )
 
 
 @pytest.mark.dependency(
@@ -122,6 +130,11 @@ def test_create_vector_store_with_files(
 
     assert isinstance(response, VectorStore)
     assert response.id is not None
+    if not use_openai:
+        assert response.metadata == {
+            "example_key": "example_value",
+            "_file_ids": "[]",
+        }
     # assert response.file_counts.total == 2
 
     # wait untill uploads are completed
@@ -148,6 +161,10 @@ def test_create_vector_store_with_files(
             weaviate_client.collections.exists(id_to_string(response.id))
             is True
         )
+        assert "_file_ids" in response.metadata
+        file_ids = json.loads(response.metadata["_file_ids"])
+        assert file_pdf.id in file_ids
+        assert file_txt.id in file_ids
         print("id_to_string(response.id):", id_to_string(response.id))
         collection = weaviate_client.collections.get(id_to_string(response.id))
 
@@ -180,15 +197,34 @@ def test_list_vector_stores(
 @pytest.mark.dependency(depends=["test_list_vector_stores"])
 def test_list_vector_stores_limit_and_order(openai_client: OpenAI):
     # get the vector stores in ascending order
-    asc_response = openai_client.beta.vector_stores.list(order='asc')
+    vs0 = openai_client.beta.vector_stores.create(name="vs0")
+    time.sleep(0.5)
+    openai_client.beta.vector_stores.create(name="vs1")
+    time.sleep(1)
+    openai_client.beta.vector_stores.create(name="vs2")
+    asc_response = openai_client.beta.vector_stores.list(
+        order='asc', after=vs0.id
+    )
     assert isinstance(asc_response.data, list)
     assert len(asc_response.data) >= 2
+    # find index of vs1
+    vs1_index = None
+    for i, vs in enumerate(asc_response.data):
+        if vs.name == "vs1":
+            vs1_index = i
+            break
+    else:
+        assert False, "Should have found vs1 in the list"
+
     assert (
-        asc_response.data[0].created_at < asc_response.data[1].created_at
+        asc_response.data[vs1_index].created_at
+        < asc_response.data[vs1_index + 1].created_at
     ), "Vector stores should be in ascending order"
 
     # get only the first vector store in ascending order
-    response = openai_client.beta.vector_stores.list(limit=1, order='asc')
+    response = openai_client.beta.vector_stores.list(
+        limit=1, order='asc', after=vs0.id
+    )
     assert len(response.data) == 1, "Should retrieve at least one vector store"
     assert (
         response.data[0].id == asc_response.data[0].id

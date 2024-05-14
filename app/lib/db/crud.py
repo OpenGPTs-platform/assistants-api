@@ -6,6 +6,7 @@ from sqlalchemy import desc, asc
 from lib.fs.schemas import FileObject
 from . import models, schemas
 import uuid
+import json
 
 
 # ASSISTANT
@@ -514,7 +515,7 @@ def create_vector_store(db: Session, vector_store: schemas.VectorStoreCreate):
         file_counts=file_counts.model_dump(),
         status=status,
         usage_bytes=0,
-        _metadata=vector_store.metadata,
+        _metadata={**vector_store.metadata, "_file_ids": json.dumps([])},
         created_at=int(time.time()),
     )
     db.add(db_vector_store)
