@@ -1,4 +1,13 @@
-from sqlalchemy import ARRAY, Column, ForeignKey, String, Integer, JSON, Enum
+from sqlalchemy import (
+    ARRAY,
+    Column,
+    Float,
+    ForeignKey,
+    String,
+    Integer,
+    JSON,
+    Enum,
+)
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -6,22 +15,21 @@ from .database import Base
 class Assistant(Base):
     __tablename__ = "assistants"
 
-    id = Column(String, primary_key=True, index=True)
-    object = Column(
-        Enum("assistant", name="assistant_object"),
-        nullable=False,
-        default="assistant",
-    )  # Since "object" is a reserved keyword in Python, consider renaming or handle appropriately # noqa
+    id = Column(String, primary_key=True)
+    object = Column(String, nullable=False, default="assistant")
     created_at = Column(Integer, nullable=False)
-    name = Column(String(256), nullable=True)
-    description = Column(String(512), nullable=True)
-    model = Column(String, nullable=False)
-    instructions = Column(String(32768), nullable=True)
-    tools = Column(
-        JSON, default=[]
-    )  # Ensure your database supports JSON type; otherwise, consider storing as String and serializing/deserializing # noqa
-    file_ids = Column(JSON, default=[])
+    name = Column(String(256))
+    description = Column(String(512))
+    model = Column(String(256), nullable=False)
+    instructions = Column(String(32768))
+    tools = Column(JSON)
     _metadata = Column("metadata", JSON, nullable=True)
+    response_format = Column(
+        String(256)
+    )  # Assuming simple string to represent the format
+    temperature = Column(Float)
+    tool_resources = Column(JSON)
+    top_p = Column(Float)
 
     # # If there's a relationship with users (assuming one assistant can belong to one user) # noqa
     # user_id = Column(String, ForeignKey('users.id'))

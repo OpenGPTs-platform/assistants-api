@@ -51,5 +51,4 @@ class DocumentLoader:
         )
         documents = text_splitter.create_documents([self.text])
         texts = [doc.page_content for doc in documents]
-        print("Texts: \n", texts)
         return texts

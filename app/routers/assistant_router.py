@@ -88,7 +88,6 @@ def update_assistant(
         - `instructions`: Optional. System instructions for the assistant (max length: 32768).
         - `tools`: Optional. List of tools enabled on the assistant.
         - `metadata`: Optional. Metadata key-value pairs attached to the assistant.
-        - `file_ids`: Optional. List of file IDs attached to the assistant.
     """  # noqa
     # Update the assistant with new values
     updated_assistant = crud.update_assistant(

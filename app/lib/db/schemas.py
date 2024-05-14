@@ -19,6 +19,7 @@ from openai.types.beta.vector_stores.vector_store_file_batch import (
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
 from openai.types.beta.threads.message_create_params import Attachment
+from openai.types.beta import assistant_update_params, assistant_create_params
 from openai.types.beta.threads.runs import (
     RunStep,
     MessageCreationStepDetails,
@@ -49,24 +50,14 @@ StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 class AssistantCreate(BaseModel):
     name: Optional[str] = Field(None, max_length=256)
     description: Optional[str] = Field(None, max_length=512)
-    model: str
+    model: str  # This field is required
     instructions: Optional[str] = Field(None, max_length=32768)
     tools: List[AssistantTool] = []
-    file_ids: List[str] = []
     metadata: Optional[Dict[str, Any]] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "name": "Math Tutor",
-                "description": "A personal math tutor assistant.",
-                "model": "gpt-4",
-                "instructions": "You are a personal math tutor. When asked a question, write and run Python code to answer the question.",  # noqa
-                "tools": [{"type": "code_interpreter"}],
-                "file_ids": [],
-                "metadata": {},
-            }
-        }
+    response_format: Optional[str] = None
+    temperature: Optional[float] = None
+    tool_resources: Optional[assistant_create_params.ToolResources] = None
+    top_p: Optional[float] = None
 
 
 class AssistantUpdate(BaseModel):
@@ -74,9 +65,12 @@ class AssistantUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=512)
     model: Optional[str] = Field(None, max_length=256)
     instructions: Optional[str] = Field(None, max_length=32768)
-    tools: Optional[List[AssistantTool]] = Field(None)
-    metadata: Optional[Dict[str, Any]] = Field(None)
-    file_ids: Optional[List[str]] = Field(None)
+    metadata: Optional[Dict[str, Any]] = None
+    tools: Optional[List[AssistantTool]] = None  # Simplified for example
+    response_format: Optional[str] = None
+    temperature: Optional[float] = None
+    tool_resources: Optional[assistant_update_params.ToolResources] = None
+    top_p: Optional[float] = None
 
 
 class MessageInput(BaseModel):  # Input for message data
