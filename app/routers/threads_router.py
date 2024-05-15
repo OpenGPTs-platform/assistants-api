@@ -27,7 +27,7 @@ def get_thread(thread_id: str, db: Session = Depends(database.get_db)):
     """
     db_thread = crud.get_thread(db, thread_id=thread_id)
     if db_thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="No thread found")
 
     return db_to_pydantic_thread(db_thread)
 
@@ -47,7 +47,7 @@ def update_thread(
         db, thread_id, thread_data.model_dump(exclude_none=True)
     )
     if db_thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="No thread found")
 
     return db_to_pydantic_thread(db_thread)
 
@@ -60,7 +60,7 @@ def delete_thread(thread_id: str, db: Session = Depends(database.get_db)):
     """
     is_deleted = crud.delete_thread(db, thread_id)
     if not is_deleted:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="No thread found")
 
     return schemas.ThreadDeleted(
         id=thread_id, deleted=is_deleted, object="thread.deleted"

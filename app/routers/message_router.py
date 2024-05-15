@@ -15,7 +15,7 @@ def create_message_in_thread(
 ):
     db_thread = crud.get_thread(db, thread_id=thread_id)
     if db_thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="No thread found")
 
     db_message = crud.create_message(
         db=db, thread_id=thread_id, message_inp=message_inp

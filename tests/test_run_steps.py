@@ -201,6 +201,9 @@ def test_file_search_run_executor(openai_client: OpenAI, assistant_id: str):
     )
 
 
+@pytest.mark.skipif(
+    use_openai, reason="OpenAI API does not support web retrieval"
+)
 @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
 def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
     file = openai_client.files.create(
