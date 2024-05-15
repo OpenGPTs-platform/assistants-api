@@ -2,16 +2,23 @@ import pytest
 from openai import OpenAI
 from openai.types.beta.thread import Thread
 import os
+import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 @pytest.fixture
@@ -45,13 +52,14 @@ def test_get_thread(openai_client: OpenAI, thread_id: str):
 
 @pytest.mark.dependency(depends=["test_create_thread_without_messages"])
 def test_update_thread_metadata(openai_client: OpenAI, thread_id: str):
-    updated_metadata = {"new_key": "new_value"}
-    response = openai_client.beta.threads.update(
-        thread_id, metadata=updated_metadata
-    )
+    metadata_update = {"new_key": "new_value"}
+    openai_client.beta.threads.update(thread_id, metadata=metadata_update)
+    time.sleep(0.5)
+    metadata_to_be = {**metadata_update, "example_key": "example_value"}
+    response = openai_client.beta.threads.retrieve(thread_id=thread_id)
     assert isinstance(response, Thread)
     assert response.id == thread_id
-    assert response.metadata == updated_metadata
+    assert response.metadata == metadata_to_be
 
 
 @pytest.mark.dependency(
@@ -71,7 +79,7 @@ def test_delete_thread(openai_client: OpenAI, thread_id: str):
         openai_client.beta.threads.retrieve(thread_id=thread_id)
     except Exception as e:
         assert e.status_code == 404
-        assert "Thread not found" in str(e)
+        assert "No thread found" in str(e)
     else:
         raise AssertionError("Thread was not deleted")
 

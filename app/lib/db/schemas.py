@@ -1,29 +1,48 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List, Dict, Any, Union
-from openai.types.beta.assistant import Assistant, Tool
+from openai.types.beta.assistant import Assistant, AssistantTool
 from openai.types.beta import Thread
-from openai.types.beta.threads import ThreadMessage
+from openai.types.beta.threads import Message
 from enum import Enum
 
 from openai.types.beta.thread_deleted import ThreadDeleted
 from openai.types.beta.assistant_deleted import AssistantDeleted
+from openai.types.beta.vector_store import (
+    VectorStore,
+    FileCounts,
+    ExpiresAfter,
+)
+from openai.types.beta.vector_stores.vector_store_file_batch import (
+    VectorStoreFileBatch,
+)
 
 from openai.pagination import SyncCursorPage
 from openai.types.beta.threads import Run
+from openai.types.beta.threads.message_create_params import Attachment
+from openai.types.beta import assistant_update_params, assistant_create_params
 from openai.types.beta.threads.runs import (
     RunStep,
     MessageCreationStepDetails,
     ToolCallsStepDetails,
 )
+from openai.types.beta.threads.text_content_block import TextContentBlock
+from openai.types.beta.threads.text import Text
+
 
 Assistant
 AssistantDeleted
 Thread
 ThreadDeleted
-ThreadMessage  # database stored message, typically used for output
+Message  # database stored message, typically used for output
 SyncCursorPage
 Run
 RunStep
+VectorStore
+FileCounts,
+ExpiresAfter,
+VectorStoreFileBatch
+TextContentBlock
+Text
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -31,24 +50,14 @@ StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 class AssistantCreate(BaseModel):
     name: Optional[str] = Field(None, max_length=256)
     description: Optional[str] = Field(None, max_length=512)
-    model: str
+    model: str  # This field is required
     instructions: Optional[str] = Field(None, max_length=32768)
-    tools: List[Tool] = []
-    file_ids: List[str] = []
+    tools: List[AssistantTool] = []
     metadata: Optional[Dict[str, Any]] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "name": "Math Tutor",
-                "description": "A personal math tutor assistant.",
-                "model": "gpt-4",
-                "instructions": "You are a personal math tutor. When asked a question, write and run Python code to answer the question.",  # noqa
-                "tools": [{"type": "code_interpreter"}],
-                "file_ids": [],
-                "metadata": {},
-            }
-        }
+    response_format: Optional[str] = None
+    temperature: Optional[float] = None
+    tool_resources: Optional[assistant_create_params.ToolResources] = None
+    top_p: Optional[float] = None
 
 
 class AssistantUpdate(BaseModel):
@@ -56,25 +65,28 @@ class AssistantUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=512)
     model: Optional[str] = Field(None, max_length=256)
     instructions: Optional[str] = Field(None, max_length=32768)
-    tools: Optional[List[Tool]] = Field(None)
-    metadata: Optional[Dict[str, Any]] = Field(None)
-    file_ids: Optional[List[str]] = Field(None)
+    metadata: Optional[Dict[str, Any]] = None
+    tools: Optional[List[AssistantTool]] = None  # Simplified for example
+    response_format: Optional[str] = None
+    temperature: Optional[float] = None
+    tool_resources: Optional[assistant_update_params.ToolResources] = None
+    top_p: Optional[float] = None
 
 
-class MessageContent(BaseModel):  # input for message data
-    role: str
+class MessageInput(BaseModel):  # Input for message data
+    role: Literal["user", "assistant"]
     content: str
-    file_ids: Optional[List[str]] = Field(default=[])
-    metadata: Optional[Dict[str, str]] = Field(default={})
+    metadata: Optional[Dict[str, str]] = Field(default_factory=dict)
+    attachments: Optional[List[Attachment]] = Field(default_factory=list)
 
 
 class ThreadCreate(BaseModel):
-    messages: Optional[List[MessageContent]] = Field(default=[])
+    messages: Optional[List[MessageInput]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
 
 
 class ThreadUpdate(BaseModel):
-    messages: Optional[List[MessageContent]] = Field(default=[])
+    messages: Optional[List[MessageInput]] = Field(default=[])
     metadata: Optional[Dict[str, str]] = Field(default={})
 
 
@@ -88,7 +100,7 @@ class RunContent(BaseModel):
     instructions: Optional[str] = Field(default="")
     metadata: Optional[Dict[str, Any]] = Field(default=None)
     model: Optional[str] = Field(default=None)
-    tools: Optional[List[Tool]] = Field(default=[])
+    tools: Optional[List[AssistantTool]] = Field(default=[])
     extra_headers: Optional[Dict[str, str]] = Field(default=None)
     extra_query: Optional[Dict[str, Any]] = Field(default=None)
     extra_body: Optional[Dict[str, Any]] = Field(default=None)
@@ -147,3 +159,22 @@ class RunStepUpdate(BaseModel):
     step_details: StepDetails = None
     type: Literal["message_creation", "tool_calls"] = None
     usage: Optional[Dict[str, Any]] = None
+
+
+class VectorStoreCreate(BaseModel):
+    file_ids: Optional[List[str]] = Field(
+        default=[], description="A list of file IDs for the vector store."
+    )
+    name: str = Field(..., description="The name of the vector store.")
+    expires_after: Optional[ExpiresAfter] = Field(
+        None, description="The expiration policy for the vector store."
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        {}, description="Metadata for additional structured information."
+    )
+
+
+class CreateVectorStoreFileBatchRequest(BaseModel):
+    file_ids: List[str] = Field(
+        ..., min_items=1, max_items=500, example=["file-abc123", "file-abc456"]
+    )

@@ -67,7 +67,7 @@ def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
     """
     db_assistant = crud.get_assistant_by_id(db=db, assistant_id=assistant_id)
     if db_assistant is None:
-        raise HTTPException(status_code=404, detail="Assistant not found")
+        raise HTTPException(status_code=404, detail="No assistant found")
     return db_to_pydantic_assistant(db_assistant)
 
 
@@ -88,7 +88,6 @@ def update_assistant(
         - `instructions`: Optional. System instructions for the assistant (max length: 32768).
         - `tools`: Optional. List of tools enabled on the assistant.
         - `metadata`: Optional. Metadata key-value pairs attached to the assistant.
-        - `file_ids`: Optional. List of file IDs attached to the assistant.
     """  # noqa
     # Update the assistant with new values
     updated_assistant = crud.update_assistant(
@@ -98,7 +97,7 @@ def update_assistant(
     )
 
     if updated_assistant is None:
-        raise HTTPException(status_code=404, detail="Assistant not found")
+        raise HTTPException(status_code=404, detail="No assistant found")
 
     return db_to_pydantic_assistant(updated_assistant)
 
@@ -118,5 +117,5 @@ def delete_assistant(
     """
     deletion_success = crud.delete_assistant(db=db, assistant_id=assistant_id)
     if not deletion_success:
-        raise HTTPException(status_code=404, detail="Assistant not found")
+        raise HTTPException(status_code=404, detail="No assistant found")
     return {"id": assistant_id, "deleted": True, "object": "assistant.deleted"}

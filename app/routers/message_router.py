@@ -7,26 +7,25 @@ from utils.tranformers import db_to_pydantic_message
 router = APIRouter()
 
 
-@router.post(
-    "/threads/{thread_id}/messages", response_model=schemas.ThreadMessage
-)
+@router.post("/threads/{thread_id}/messages", response_model=schemas.Message)
 def create_message_in_thread(
     thread_id: str,
-    message: schemas.MessageContent,
+    message_inp: schemas.MessageInput,
     db: Session = Depends(database.get_db),
 ):
     db_thread = crud.get_thread(db, thread_id=thread_id)
     if db_thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="No thread found")
+
     db_message = crud.create_message(
-        db=db, thread_id=thread_id, message=message
+        db=db, thread_id=thread_id, message_inp=message_inp
     )
     return db_to_pydantic_message(db_message)
 
 
 @router.get(
     "/threads/{thread_id}/messages",
-    response_model=schemas.SyncCursorPage[schemas.ThreadMessage],
+    response_model=schemas.SyncCursorPage[schemas.Message],
 )
 def get_messages_in_thread(
     thread_id: str,
@@ -60,7 +59,7 @@ def get_messages_in_thread(
 
 @router.get(
     "/threads/{thread_id}/messages/{message_id}",
-    response_model=schemas.ThreadMessage,
+    response_model=schemas.Message,
 )
 def get_message(
     thread_id: str,
@@ -82,7 +81,7 @@ def get_message(
 
 @router.post(
     "/threads/{thread_id}/messages/{message_id}",
-    response_model=schemas.ThreadMessage,
+    response_model=schemas.Message,
 )
 def modify_message(
     thread_id: str = Path(

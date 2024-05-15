@@ -4,14 +4,20 @@ import os
 import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
+use_openai = True if os.getenv("USE_OPENAI") else False
+base_url = "http://localhost:8000"
 
 
 @pytest.fixture
 def openai_client():
-    return OpenAI(
-        base_url="http://localhost:8000",
-        api_key=api_key,
-    )
+    if use_openai:
+        return OpenAI(
+            api_key=api_key,
+        )
+    else:
+        return OpenAI(
+            base_url=base_url,
+        )
 
 
 @pytest.fixture
@@ -27,7 +33,6 @@ def test_create_message_in_thread(openai_client: OpenAI, thread_id: str):
     message_data = {
         "role": "user",
         "content": "Hello, World!",
-        "file_ids": [],
         "metadata": {"example_key": "example_value"},
     }
 
@@ -38,7 +43,7 @@ def test_create_message_in_thread(openai_client: OpenAI, thread_id: str):
     assert response.id is not None
     assert response.role == message_data["role"]
     assert response.content[0].text.value == message_data["content"]
-    assert response.file_ids == message_data["file_ids"]
+    assert response.attachments == []
     assert response.metadata == message_data["metadata"]
 
 
@@ -48,13 +53,11 @@ def test_get_messages_in_thread(openai_client: OpenAI, thread_id: str):
     message_data_1 = {
         "role": "user",
         "content": "First message",
-        "file_ids": [],
         "metadata": {"example_key": "example_value"},
     }
     message_data_2 = {
         "role": "user",
         "content": "Second message",
-        "file_ids": [],
     }
     openai_client.beta.threads.messages.create(
         thread_id=thread_id, **message_data_1
@@ -74,7 +77,7 @@ def test_get_messages_in_thread(openai_client: OpenAI, thread_id: str):
     assert len(response.data) == 2
     assert response.data[1].role == message_data_1["role"]
     assert response.data[1].content[0].text.value == message_data_1["content"]
-    assert response.data[1].file_ids == message_data_1["file_ids"]
+    assert response.data[1].attachments == []
     assert response.data[1].metadata == message_data_1["metadata"]
 
 
@@ -86,7 +89,6 @@ def test_create_thread_with_message(openai_client: OpenAI):
     message_data = {
         "role": "user",
         "content": "Hello, World!",
-        "file_ids": [],
         "metadata": {"example_key": "example_value"},
     }
 
@@ -103,7 +105,7 @@ def test_create_thread_with_message(openai_client: OpenAI):
     assert (
         get_messages.data[0].content[0].text.value == message_data["content"]
     )
-    assert get_messages.data[0].file_ids == message_data["file_ids"]
+    assert get_messages.data[0].attachments == []
     assert get_messages.data[0].metadata == message_data["metadata"]
 
 
@@ -115,7 +117,6 @@ def test_get_specific_message_in_thread(openai_client: OpenAI, thread_id: str):
     message_data = {
         "role": "user",
         "content": "Test message content",
-        "file_ids": [],
         "metadata": {"example_key": "example_value"},
     }
     message_response = openai_client.beta.threads.messages.create(
@@ -133,8 +134,8 @@ def test_get_specific_message_in_thread(openai_client: OpenAI, thread_id: str):
     assert retrieved_message.thread_id == thread_id
     assert retrieved_message.role == message_data["role"]
     assert retrieved_message.content[0].text.value == message_data["content"]
-    assert retrieved_message.file_ids == message_data["file_ids"]
-    assert retrieved_message.metadata == message_data["metadata"]
+    assert retrieved_message.attachments == []
+    assert retrieved_message.metadata == message_data.get("metadata", {})
 
     # Optionally, cleanup by deleting the message and thread if necessary
 
@@ -147,8 +148,6 @@ def test_modify_message_in_thread(openai_client: OpenAI, thread_id: str):
     message_data = {
         "role": "user",
         "content": "Initial message content",
-        "file_ids": [],
-        "metadata": {},
     }
     message_response = openai_client.beta.threads.messages.create(
         thread_id=thread_id, **message_data
@@ -163,8 +162,8 @@ def test_modify_message_in_thread(openai_client: OpenAI, thread_id: str):
     assert retrieved_message.thread_id == thread_id
     assert retrieved_message.role == message_data["role"]
     assert retrieved_message.content[0].text.value == message_data["content"]
-    assert retrieved_message.file_ids == message_data["file_ids"]
-    assert retrieved_message.metadata == message_data["metadata"]
+    assert retrieved_message.attachments == []
+    assert retrieved_message.metadata == {}
 
     # Data for modification
     updated_metadata = {"modified": "true", "user": "abc123"}
@@ -180,7 +179,7 @@ def test_modify_message_in_thread(openai_client: OpenAI, thread_id: str):
     assert modified_message.thread_id == thread_id
     assert modified_message.role == message_data["role"]
     assert modified_message.content[0].text.value == message_data["content"]
-    assert modified_message.file_ids == message_data["file_ids"]
+    assert not modified_message.attachments
     assert modified_message.metadata == updated_metadata
 
     retrieved_updated_message = openai_client.beta.threads.messages.retrieve(
@@ -195,5 +194,5 @@ def test_modify_message_in_thread(openai_client: OpenAI, thread_id: str):
         retrieved_updated_message.content[0].text.value
         == message_data["content"]
     )
-    assert retrieved_updated_message.file_ids == message_data["file_ids"]
+    assert retrieved_updated_message.attachments == []
     assert retrieved_updated_message.metadata == updated_metadata

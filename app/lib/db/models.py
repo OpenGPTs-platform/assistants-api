@@ -1,4 +1,13 @@
-from sqlalchemy import ARRAY, Column, ForeignKey, String, Integer, JSON, Enum
+from sqlalchemy import (
+    ARRAY,
+    Column,
+    Float,
+    ForeignKey,
+    String,
+    Integer,
+    JSON,
+    Enum,
+)
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -6,22 +15,21 @@ from .database import Base
 class Assistant(Base):
     __tablename__ = "assistants"
 
-    id = Column(String, primary_key=True, index=True)
-    object = Column(
-        Enum("assistant", name="assistant_object"),
-        nullable=False,
-        default="assistant",
-    )  # Since "object" is a reserved keyword in Python, consider renaming or handle appropriately # noqa
+    id = Column(String, primary_key=True)
+    object = Column(String, nullable=False, default="assistant")
     created_at = Column(Integer, nullable=False)
-    name = Column(String(256), nullable=True)
-    description = Column(String(512), nullable=True)
-    model = Column(String, nullable=False)
-    instructions = Column(String(32768), nullable=True)
-    tools = Column(
-        JSON, default=[]
-    )  # Ensure your database supports JSON type; otherwise, consider storing as String and serializing/deserializing # noqa
-    file_ids = Column(JSON, default=[])
+    name = Column(String(256))
+    description = Column(String(512))
+    model = Column(String(256), nullable=False)
+    instructions = Column(String(32768))
+    tools = Column(JSON)
     _metadata = Column("metadata", JSON, nullable=True)
+    response_format = Column(
+        String(256)
+    )  # Assuming simple string to represent the format
+    temperature = Column(Float)
+    tool_resources = Column(JSON)
+    top_p = Column(Float)
 
     # # If there's a relationship with users (assuming one assistant can belong to one user) # noqa
     # user_id = Column(String, ForeignKey('users.id'))
@@ -81,13 +89,20 @@ class Message(Base):
     role = Column(Enum('user', 'assistant', name='role_types'), nullable=False)
     content = Column(
         ARRAY(JSON), nullable=False
-    )  # To store structured content including text and images
+    )  # Structured content (text/images)
+    attachments = Column(JSON, nullable=True)
     assistant_id = Column(String, nullable=True)
     run_id = Column(String, nullable=True)
-    file_ids = Column(ARRAY(String), nullable=True)  # Stores up to 10 file IDs
     _metadata = Column("metadata", JSON, nullable=True)
+    status = Column(
+        Enum('in_progress', 'incomplete', 'completed', name='status_types'),
+        nullable=False,
+        default='in_progress',
+    )
+    completed_at = Column(Integer, nullable=True)
+    incomplete_at = Column(Integer, nullable=True)
+    incomplete_details = Column(JSON, nullable=True)
 
-    # Establish a relationship to the Thread model
     thread = relationship("Thread", back_populates="messages")
 
 
@@ -169,3 +184,47 @@ class RunStep(Base):
 Thread.run_steps = relationship(
     "RunStep", order_by=RunStep.created_at, back_populates="thread"
 )
+
+
+class VectorStore(Base):
+    __tablename__ = 'vector_stores'
+
+    id = Column(String, primary_key=True, index=True)
+    created_at = Column(Integer, nullable=False)
+    last_active_at = Column(Integer, nullable=True)
+    _metadata = Column("metadata", JSON, nullable=True)
+    name = Column(String(256), nullable=False)
+    object = Column(String, nullable=False, default="vector_store")
+    status = Column(
+        Enum(
+            "in_progress",
+            "completed",
+            "expired",
+            name="vector_store_status",
+        ),
+        nullable=False,
+    )
+    usage_bytes = Column(Integer, nullable=False)
+    file_counts = Column(JSON, nullable=False)
+    expires_after = Column(JSON, nullable=True)
+    expires_at = Column(Integer, nullable=True)
+
+
+class VectorStoreFileBatch(Base):
+    __tablename__ = "vector_store_file_batches"
+
+    id = Column(String, primary_key=True, index=True)
+    created_at = Column(Integer, nullable=False)
+    vector_store_id = Column(String, index=True, nullable=False)
+    object = Column(String, nullable=False, default="vector_store.files_batch")
+    status = Column(
+        Enum(
+            "in_progress",
+            "completed",
+            "cancelled",
+            "failed",
+            name="batch_status",
+        ),
+        default="in_progress",
+    )
+    file_counts = Column(JSON, nullable=False)

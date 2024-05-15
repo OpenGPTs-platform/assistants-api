@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Path
 from minio import Minio, S3Error
 from lib.fs import actions
-from lib.wv import actions as wv_actions
 from lib.fs.store import minio_client, BUCKET_NAME
 from lib.fs.schemas import FileObject, FileDeleted
 from lib.db.database import get_db
@@ -30,17 +29,20 @@ async def create_file(
         raise HTTPException(status_code=400, detail="File is empty")
 
     uploaded_file = actions.upload_file(
-        minio_client=minio_client, bucket_name=BUCKET_NAME, file=file
+        minio_client=minio_client,
+        bucket_name=BUCKET_NAME,
+        file=file,
+        file_data=file_data_bytes,
     )
 
     crud.create_file(db=db, file=uploaded_file)
 
-    # File data is passed here after ensuring it's not empty
-    wv_actions.upload_file_chunks(
-        file_data=file_data_bytes,
-        file_name=file.filename,
-        file_id=uploaded_file.id,
-    )
+    # # File data is passed here after ensuring it's not empty
+    # wv_actions.upload_file_chunks(
+    #     file_data=file_data_bytes,
+    #     file_name=file.filename,
+    #     file_id=uploaded_file.id,
+    # )
 
     return uploaded_file
 
