@@ -2,6 +2,7 @@ import pytest
 from openai import OpenAI
 from openai.types.beta.threads import Run
 import os
+import time
 
 api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 use_openai = True if os.getenv("USE_OPENAI") else False
@@ -30,7 +31,7 @@ def thread_id(openai_client: OpenAI):
 @pytest.fixture
 def assistant_id(openai_client: OpenAI):
     response = openai_client.beta.assistants.create(
-        instructions="You are an AI designed to provide examples.",
+        instructions="Always begin your response with the word 'banana'.",
         name="Example Assistant",
         tools=[{"type": "code_interpreter"}],
         model="gpt-3.5-turbo",
@@ -139,4 +140,83 @@ def test_cancel_run(openai_client: OpenAI, run_id_and_thread_id: tuple):
     assert post_cancel_run_response.status in ["cancelling", "cancelled"]
 
 
-# TODO: add test to evaluate if run can actually generate a response to a message
+@pytest.mark.dependency(depends=["test_create_run", "test_get_run"])
+def test_run_execution(
+    openai_client: OpenAI, assistant_id: str, thread_id: str
+):
+    openai_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content="What year was the Apollo 11 moon landing (answer concisely)",
+    )
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+
+    assert response.status == "queued"
+    # Check every 4 seconds, up to 5 times
+    max_checks = 12
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        response = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_id, run_id=response.id
+        )
+
+        assert response.status in ["in_progress", "completed"]
+
+        if response.status == "completed":
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
+
+    # once completed check the messages for correct generation
+    messages = openai_client.beta.threads.messages.list(
+        thread_id=thread_id, order="desc"
+    )
+    assert len(messages.data) == 2
+    assert messages.data[0].role == "assistant"
+    assert "1969" in messages.data[0].content[0].text.value
+
+
+@pytest.mark.dependency(depends=["test_create_run", "test_get_run"])
+def test_run_instruction_following(
+    openai_client: OpenAI, assistant_id: str, thread_id: str
+):
+    openai_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content="What year was the Apollo 11 moon landing (answer concisely), follow my instructions",  # noqa
+    )
+    response = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+
+    assert response.status == "queued"
+    # Check every 4 seconds, up to 5 times
+    max_checks = 12
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        response = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_id, run_id=response.id
+        )
+
+        assert response.status in ["in_progress", "completed"]
+
+        if response.status == "completed":
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
+
+    # once completed check the messages for correct generation
+    messages = openai_client.beta.threads.messages.list(
+        thread_id=thread_id, order="desc"
+    )
+    assert len(messages.data) == 2
+    assert messages.data[0].role == "assistant"
+    assert "banana" in messages.data[0].content[0].text.value.lower()
