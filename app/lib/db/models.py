@@ -21,7 +21,7 @@ class Assistant(Base):
     name = Column(String(256))
     description = Column(String(512))
     model = Column(String(256), nullable=False)
-    instructions = Column(String(32768))
+    instructions = Column(String(32768), default="")
     tools = Column(JSON)
     _metadata = Column("metadata", JSON, nullable=True)
     response_format = Column(

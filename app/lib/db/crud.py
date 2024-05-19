@@ -16,7 +16,7 @@ def create_assistant(db: Session, assistant: schemas.AssistantCreate):
 
     # Serialize tool_resources if provided
     tool_resources_json = (
-        assistant.tool_resources.__dict__ if assistant.tool_resources else None
+        assistant.tool_resources if assistant.tool_resources else None
     )
 
     # Generate a unique ID for the new assistant
@@ -339,6 +339,9 @@ def create_run(db: Session, thread_id: str, run: schemas.RunContent):
     model = run.model if run.model else db_assistant.model
     tools = run.tools if run.tools else db_assistant.tools
     metadata = run.metadata if run.metadata else db_assistant._metadata
+    instructions = (
+        run.instructions if run.instructions else db_assistant.instructions
+    )
 
     # Create the Run instance
     db_run = models.Run(
