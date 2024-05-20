@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Optional, List, Dict, Any, Union
+from typing import Iterable, Literal, Optional, List, Dict, Any, Union
 from openai.types.beta.assistant import Assistant, AssistantTool
 from openai.types.beta import Thread
 from openai.types.beta.threads import Message
@@ -27,6 +27,14 @@ from openai.types.beta.threads.runs import (
 )
 from openai.types.beta.threads.text_content_block import TextContentBlock
 from openai.types.beta.threads.text import Text
+from openai.types.beta.threads import run_create_params
+from openai.types.beta.assistant_tool_param import AssistantToolParam
+from openai.types.beta.assistant_tool_choice_option_param import (
+    AssistantToolChoiceOptionParam,
+)
+from openai.types.beta.assistant_response_format_option_param import (
+    AssistantResponseFormatOptionParam,
+)
 
 
 Assistant
@@ -96,15 +104,26 @@ class MessageUpdate(BaseModel):
 
 class RunContent(BaseModel):
     assistant_id: str
-    additional_instructions: Optional[str] = Field(default="")
-    instructions: Optional[str] = Field(default="")
-    metadata: Optional[Dict[str, Any]] = Field(default=None)
-    model: Optional[str] = Field(default=None)
-    tools: Optional[List[AssistantTool]] = Field(default=[])
-    extra_headers: Optional[Dict[str, str]] = Field(default=None)
-    extra_query: Optional[Dict[str, Any]] = Field(default=None)
-    extra_body: Optional[Dict[str, Any]] = Field(default=None)
-    timeout: Optional[float] = Field(default=None)
+    stream: bool = False
+    additional_instructions: Optional[str] = None
+    additional_messages: Optional[
+        Iterable[run_create_params.AdditionalMessage]
+    ] = None
+    instructions: Optional[str] = None
+    max_completion_tokens: Optional[int] = None
+    max_prompt_tokens: Optional[int] = None
+    metadata: Optional[dict] = None
+    model: Optional[str] = None
+    response_format: Optional[AssistantResponseFormatOptionParam] = None
+    temperature: Optional[float] = None
+    tool_choice: Optional[AssistantToolChoiceOptionParam] = None
+    tools: Optional[Iterable[AssistantToolParam]] = None
+    top_p: Optional[float] = None
+    truncation_strategy: Optional[run_create_params.TruncationStrategy] = None
+    extra_headers: Optional[dict] = None
+    extra_query: Optional[dict] = None
+    extra_body: Optional[dict] = None
+    timeout: Optional[float] = None
 
 
 class RunStatus(str, Enum):

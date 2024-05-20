@@ -37,7 +37,7 @@ def create_run(
     Raises:
     - HTTPException: If the run creation fails, an HTTP 500 error is returned with a failure detail.
     """  # noqa
-    db_run = crud.create_run(db=db, thread_id=thread_id, run=run)
+    db_run = crud.create_run(db=db, thread_id=thread_id, run_params=run)
     if db_run is None:
         raise HTTPException(status_code=500, detail="Run creation failed")
 

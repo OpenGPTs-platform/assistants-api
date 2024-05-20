@@ -214,13 +214,24 @@ def create_message(
         text=schemas.Text(annotations=[], value=message_inp.content),
         type="text",
     )  # TODO: will need to update this for
+
+    # Create a new UUID
+    original_uuid = str(uuid.uuid4())
+
+    # Convert time_shift to string and get its length
+    time_shift_str = str(time_shift)
+    time_shift_len = len(time_shift_str)
+
+    # Replace the first x characters of the UUID with time_shift
+    modified_uuid = time_shift_str + original_uuid[time_shift_len:]
+
     db_message = models.Message(
-        id=str(uuid.uuid4()),
+        id=modified_uuid,
         thread_id=thread_id,
         object="thread.message",
         role=message_inp.role,
         content=[message_content.model_dump()],
-        created_at=int(time.time()) + time_shift,
+        created_at=int(time.time() * 1000),
         attachments=message_inp.attachments if message_inp.attachments else [],
         assistant_id=None,  # Assuming this needs to be set in some other part of your application # noqa
         run_id=None,  # Same as above
@@ -319,44 +330,53 @@ def update_message(
 
 
 # RUNS
-def create_run(db: Session, thread_id: str, run: schemas.RunContent):
+def create_run(db: Session, thread_id: str, run_params: schemas.RunContent):
     # Check if the thread exists
     db_thread = get_thread(db, thread_id)
     if not db_thread:
         raise ValueError(f"Thread with ID {thread_id} does not exist")
 
     # Check if the assistant exists
-    db_assistant = get_assistant_by_id(db, run.assistant_id)
+    db_assistant = get_assistant_by_id(db, run_params.assistant_id)
     if not db_assistant:
         raise ValueError(
-            f"Assistant with ID {run.assistant_id} does not exist"
+            f"Assistant with ID {run_params.assistant_id} does not exist"
         )
 
-    # Set fields from run or fallback to assistant's values
+    # Set fields from run_params or fallback to assistant's values
     instructions = (
-        run.instructions if run.instructions else db_assistant.instructions
+        run_params.instructions
+        if run_params.instructions
+        else db_assistant.instructions
     )
-    model = run.model if run.model else db_assistant.model
-    tools = run.tools if run.tools else db_assistant.tools
-    metadata = run.metadata if run.metadata else db_assistant._metadata
+    model = run_params.model if run_params.model else db_assistant.model
+    tools = run_params.tools if run_params.tools else db_assistant.tools
+    metadata = (
+        run_params.metadata if run_params.metadata else db_assistant._metadata
+    )
     instructions = (
-        run.instructions if run.instructions else db_assistant.instructions
+        instructions + " " + (run_params.additional_instructions or "")
     )
 
     # Create the Run instance
     db_run = models.Run(
         id=str(uuid.uuid4()),
         thread_id=thread_id,
-        assistant_id=run.assistant_id,
+        assistant_id=run_params.assistant_id,
         created_at=int(time.time()),
         expires_at=int(time.time()) + 3600,  # Assuming 1-hour expiration
-        instructions=instructions
-        + " "
-        + run.additional_instructions,  # Assuming this is how OpenAI handles additional instructions # noqa
+        instructions=instructions,
         model=model,
         tools=tools,
         _metadata=metadata,
         status=schemas.RunStatus.QUEUED.value,
+        max_completion_tokens=run_params.max_completion_tokens,
+        max_prompt_tokens=run_params.max_prompt_tokens,
+        response_format=run_params.response_format,
+        temperature=run_params.temperature,
+        top_p=run_params.top_p,
+        tool_choice=run_params.tool_choice,
+        truncation_strategy=run_params.truncation_strategy,
     )
 
     # Add and commit the new Run to the database

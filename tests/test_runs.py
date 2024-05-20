@@ -220,3 +220,107 @@ def test_run_instruction_following(
     assert len(messages.data) == 2
     assert messages.data[0].role == "assistant"
     assert "banana" in messages.data[0].content[0].text.value.lower()
+
+
+@pytest.mark.dependency(depends=["test_create_run", "test_get_run"])
+def test_run_with_context_truncation(
+    openai_client: OpenAI,
+):
+    asst = openai_client.beta.assistants.create(
+        name="Example Assistant",
+        model="gpt-3.5-turbo",
+    )
+    assistant_id = asst.id
+
+    # compose messages
+    token_eq_100 = "lorem ipsum dolor sit amet, consectetur adipiscing elit. sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. except occaecat. "  # noqa
+    message_eq_100_tokens = [
+        {
+            "role": "user",
+            "content": token_eq_100,
+        }
+    ]
+    thread_messages = [
+        {
+            "role": "user",
+            "content": "My favorite fruit is Mangosteen",
+        },
+        {
+            "role": "assistant",
+            "content": "Great to hear that! I will remember that.",
+        },
+    ]
+    thread_messages += message_eq_100_tokens * 4
+    thread_messages.append(
+        {
+            "role": "user",
+            "content": "What is my favorite fruit (answer concisely)",
+        }
+    )
+
+    # create threads and runs with and without truncation
+    thread_without_truncation = openai_client.beta.threads.create(
+        messages=thread_messages
+    )
+    response_without_truncation = openai_client.beta.threads.runs.create(
+        thread_id=thread_without_truncation.id, assistant_id=assistant_id
+    )
+    thread_with_truncation = openai_client.beta.threads.create(
+        messages=thread_messages
+    )
+    response_with_truncation = openai_client.beta.threads.runs.create(
+        thread_id=thread_with_truncation.id,
+        assistant_id=assistant_id,
+        max_prompt_tokens=300,
+    )
+
+    assert response_without_truncation.status == "queued"
+    assert response_with_truncation.status == "queued"
+
+    # Check every 4 seconds, up to 5 times
+    max_checks = 12
+    check_interval = 2
+    for _ in range(max_checks):
+        time.sleep(check_interval)
+        response_with_truncation = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_with_truncation.id,
+            run_id=response_with_truncation.id,
+        )
+        response_without_truncation = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_without_truncation.id,
+            run_id=response_without_truncation.id,
+        )
+        print(
+            response_with_truncation.status, response_without_truncation.status
+        )
+
+        assert response_with_truncation.status not in ["failed"]
+        assert response_without_truncation.status not in ["failed"]
+
+        if response_with_truncation.status in [
+            "incomplete",
+            "completed",
+        ] and response_without_truncation.status in [
+            "incomplete",
+            "completed",
+        ]:
+            break
+    else:
+        # If the loop completes without breaking, assert failure due to timeout
+        assert False, "Run did not complete within the expected time."
+
+    # verify without truncation works
+    messages = openai_client.beta.threads.messages.list(
+        thread_id=thread_without_truncation.id, order="desc"
+    )
+    assert len(messages.data) >= 2
+    assert messages.data[0].role == "assistant"
+    assert "mangosteen" in messages.data[0].content[0].text.value.lower()
+
+    # verify with truncation works
+    messages = openai_client.beta.threads.messages.list(
+        thread_id=thread_with_truncation.id, order="desc"
+    )
+    assert len(messages.data) >= 2
+    assert messages.data[0].role == "assistant"
+    assert "mangosteen" not in messages.data[0].content[0].text.value.lower()

@@ -1,5 +1,6 @@
 from sqlalchemy import (
     ARRAY,
+    BigInteger,
     Column,
     Float,
     ForeignKey,
@@ -84,7 +85,9 @@ class Message(Base):
 
     id = Column(String, primary_key=True, index=True)
     object = Column(String, nullable=False, default="thread.message")
-    created_at = Column(Integer, nullable=False)
+    created_at = Column(
+        BigInteger, nullable=False
+    )  # BigInteger to ensure no repreating timestamps
     thread_id = Column(String, ForeignKey('threads.id'))
     role = Column(Enum('user', 'assistant', name='role_types'), nullable=False)
     content = Column(
@@ -119,19 +122,33 @@ class Run(Base):
     cancelled_at = Column(Integer, nullable=True)
     completed_at = Column(Integer, nullable=True)
     created_at = Column(Integer, nullable=False)
-    expires_at = Column(Integer, nullable=False)
+    expires_at = Column(
+        Integer, nullable=True
+    )  # Changed from nullable=False to nullable=True
     failed_at = Column(Integer, nullable=True)
-    file_ids = Column(JSON, default=[])
+    incomplete_details = Column(JSON, nullable=True)  # Added field
     instructions = Column(String, nullable=False, default="")
     last_error = Column(JSON, nullable=True)
-    _metadata = Column("metadata", JSON, nullable=True)
+    max_completion_tokens = Column(Integer, nullable=True)  # Added field
+    max_prompt_tokens = Column(Integer, nullable=True)  # Added field
+    _metadata = Column(
+        "metadata", JSON, nullable=True
+    )  # Renamed _metadata to metadata
     model = Column(String, nullable=False)
     object = Column(String, nullable=False, default="thread.run")
+    required_action = Column(JSON, nullable=True)  # Added field
+    response_format = Column(JSON, nullable=True)  # Added field
     started_at = Column(Integer, nullable=True)
     status = Column(String, nullable=False)
     thread_id = Column(String, ForeignKey('threads.id'))
-    tools = Column(JSON, nullable=True, default=[])
+    tool_choice = Column(JSON, nullable=True)  # Added field
+    tools = Column(
+        JSON, nullable=True, default=[]
+    )  # Modified default to match list in Pydantic schema
+    truncation_strategy = Column(JSON, nullable=True)  # Added field
     usage = Column(JSON, nullable=True)
+    temperature = Column(Float, nullable=True)  # Added field
+    top_p = Column(Float, nullable=True)  # Added field
 
     thread = relationship("Thread", back_populates="runs")
 
