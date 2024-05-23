@@ -30,9 +30,10 @@ def openai_client():
 
 @pytest.fixture
 def weaviate_client():
-    return weaviate.connect_to_wcs(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=None,
+    return weaviate.connect_to_local(
+        host='localhost',
+        port=8080,
+        grpc_port=50051,
         headers={
             "X-OpenAI-Api-Key": os.getenv("OPENAI_API_KEY"),
         },
@@ -198,7 +199,7 @@ def test_list_vector_stores(
 def test_list_vector_stores_limit_and_order(openai_client: OpenAI):
     # get the vector stores in ascending order
     vs0 = openai_client.beta.vector_stores.create(name="vs0")
-    time.sleep(0.5)
+    time.sleep(1)
     openai_client.beta.vector_stores.create(name="vs1")
     time.sleep(1)
     openai_client.beta.vector_stores.create(name="vs2")

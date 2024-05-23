@@ -1,13 +1,14 @@
 import weaviate
 import os
 
-WEAVIATE_URL = os.getenv("WEAVIATE_URL")
+WEAVIATE_HOST = os.getenv("WEAVIATE_HOST")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-client = weaviate.connect_to_wcs(
-    cluster_url=WEAVIATE_URL,
-    auth_credentials=None,
+client = weaviate.connect_to_local(
+    host=WEAVIATE_HOST,
+    port=8080,
+    grpc_port=50051,
     headers={
-        "X-OpenAI-Api-Key": OPENAI_API_KEY,
+        "X-OpenAI-Api-Key": os.getenv("OPENAI_API_KEY"),
     },
 )

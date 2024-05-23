@@ -27,10 +27,6 @@ services:
       - minio_data:/data
     command: server /data
 
-  redis:
-    image: redis:latest
-    restart: always
-
   rabbitmq:
     image: "rabbitmq:3-management"
     environment:
@@ -41,6 +37,29 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.25.1
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
 
   assistants_api:
     build:
@@ -53,8 +72,8 @@ services:
     depends_on:
       - postgres
       - minio
-      - redis
       - rabbitmq
+      - weaviate
     environment:
       POSTGRES_HOST: $POSTGRES_HOST
       POSTGRES_PORT: $POSTGRES_PORT
@@ -63,14 +82,6 @@ services:
       POSTGRES_DB: $POSTGRES_DB
       OPENAI_API_KEY: $OPENAI_API_KEY
       ASSISTANTS_URL: $ASSISTANTS_URL
-      GOOGLE_CLIENT_ID: $GOOGLE_CLIENT_ID
-      GOOGLE_CLIENT_SECRET: $GOOGLE_CLIENT_SECRET
-      GOOGLE_REDIRECT_URI: $GOOGLE_REDIRECT_URI
-      ACCESS_TOKEN_EXPIRE_MINUTES: $ACCESS_TOKEN_EXPIRE_MINUTES
-      JWT_SECRET: $JWT_SECRET
-      CLIENT_LOGIN_REDIRECT_URI: $CLIENT_LOGIN_REDIRECT_URI
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       MINIO_ENDPOINT: minio
       MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
       MINIO_SECRET_KEY: $MINIO_SECRET_KEY
@@ -78,11 +89,11 @@ services:
       RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
       RABBITMQ_HOST: $RABBITMQ_HOST
       RABBITMQ_PORT: $RABBITMQ_PORT
-      WEAVIATE_URL: $WEAVIATE_URL
+      WEAVIATE_HOST: weaviate
     command:  sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-
 
 volumes:
   postgres_data:
   minio_data:
   rabbitmq_data:
+  weaviate_data:
