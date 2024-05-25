@@ -81,16 +81,38 @@ services:
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
       POSTGRES_DB: $POSTGRES_DB
       OPENAI_API_KEY: $OPENAI_API_KEY
-      ASSISTANTS_URL: $ASSISTANTS_URL
       MINIO_ENDPOINT: minio
       MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
       MINIO_SECRET_KEY: $MINIO_SECRET_KEY
       RABBITMQ_DEFAULT_USER: $RABBITMQ_DEFAULT_USER
       RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
-      RABBITMQ_HOST: $RABBITMQ_HOST
+      RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: $RABBITMQ_PORT
       WEAVIATE_HOST: weaviate
     command:  sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+  hexamorous:
+    build:
+      context: ${HEXAMOROUS_RELATIVE_PATH}
+      dockerfile: Dockerfile
+    volumes:
+      - ${HEXAMOROUS_RELATIVE_PATH}:/app
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+      - weaviate
+    environment:
+      RABBITMQ_USER: $RABBITMQ_USER
+      RABBITMQ_PASS: $RABBITMQ_PASS
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: $RABBITMQ_PORT
+      OPENAI_API_KEY: $OPENAI_API_KEY
+      ASSISTANTS_API_URL: http://assistants_api:8000
+      LITELLM_API_URL: $LITELLM_API_URL
+      LITELLM_API_KEY: $LITELLM_API_KEY
+      LITELLM_MODEL: $LITELLM_MODEL
+      WEAVIATE_HOST: weaviate
+    command:  sh -c "sleep 20 && python ./scripts/watcher.py"
 
 volumes:
   postgres_data:

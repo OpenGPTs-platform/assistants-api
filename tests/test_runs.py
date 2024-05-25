@@ -164,7 +164,7 @@ def test_run_execution(
             thread_id=thread_id, run_id=response.id
         )
 
-        assert response.status in ["in_progress", "completed"]
+        assert response.status in ["queued", "in_progress", "completed"]
 
         if response.status == "completed":
             break
