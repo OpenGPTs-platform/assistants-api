@@ -1,15 +1,17 @@
 import pika
 import os
 
-RABBITMQ_USER = os.getenv("RABBITMQ_DEFAULT_USER")
-RABBITMQ_PASS = os.getenv("RABBITMQ_DEFAULT_PASS")
+RABBITMQ_DEFAULT_USER = os.getenv("RABBITMQ_DEFAULT_USER")
+RABBITMQ_DEFAULT_PASS = os.getenv("RABBITMQ_DEFAULT_PASS")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = os.getenv("RABBITMQ_PORT")
 
 
 class RabbitMQBroker:
     def __init__(self):
-        credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+        credentials = pika.PlainCredentials(
+            RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS
+        )
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=RABBITMQ_HOST,

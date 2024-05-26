@@ -48,25 +48,25 @@ services:
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25
-      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
-      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
-      DEFAULT_VECTORIZER_MODULE: 'none'
-      ENABLE_MODULES: 'text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai'
-      CLUSTER_HOSTNAME: 'node1'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: "text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai"
+      CLUSTER_HOSTNAME: "node1"
     command:
       - --host
       - 0.0.0.0
       - --port
-      - '8080'
+      - "8080"
       - --scheme
       - http
 
   assistants_api:
     build:
-      context: ./
+      context: ./assistants_api
       dockerfile: Dockerfile
     volumes:
-      - ./app:/app
+      - ./assistants_api/app:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -90,29 +90,29 @@ services:
       RABBITMQ_PORT: $RABBITMQ_PORT
       WEAVIATE_HOST: weaviate
     command:  sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-  hexamorous:
-    build:
-      context: ${HEXAMOROUS_RELATIVE_PATH}
-      dockerfile: Dockerfile
-    volumes:
-      - ${HEXAMOROUS_RELATIVE_PATH}:/app
-    depends_on:
-      - postgres
-      - minio
-      - rabbitmq
-      - weaviate
-    environment:
-      RABBITMQ_USER: $RABBITMQ_USER
-      RABBITMQ_PASS: $RABBITMQ_PASS
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: $RABBITMQ_PORT
-      OPENAI_API_KEY: $OPENAI_API_KEY
-      ASSISTANTS_API_URL: http://assistants_api:8000
-      LITELLM_API_URL: $LITELLM_API_URL
-      LITELLM_API_KEY: $LITELLM_API_KEY
-      LITELLM_MODEL: $LITELLM_MODEL
-      WEAVIATE_HOST: weaviate
-    command:  sh -c "sleep 20 && python ./scripts/watcher.py"
+  # run_executor_worker:
+  #   build:
+  #     context: ./
+  #     dockerfile: run_executor_worker/Dockerfile
+  #   volumes:
+  #     - ./run_executor_worker:/app
+  #   depends_on:
+  #     - postgres
+  #     - minio
+  #     - rabbitmq
+  #     - weaviate
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: $RABBITMQ_DEFAULT_USER
+  #     RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_PORT: $RABBITMQ_PORT
+  #     OPENAI_API_KEY: $OPENAI_API_KEY
+  #     ASSISTANTS_API_URL: http://assistants_api:8000
+  #     LITELLM_API_URL: $LITELLM_API_URL
+  #     LITELLM_API_KEY: $LITELLM_API_KEY
+  #     LITELLM_MODEL: $LITELLM_MODEL
+  #     WEAVIATE_HOST: weaviate
+  #   command: sh -c "sleep 15 && python /app/scripts/watcher.py"
 
 volumes:
   postgres_data:
