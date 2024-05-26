@@ -16,6 +16,11 @@ api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 use_openai = True if os.getenv("USE_OPENAI") else False
 base_url = "http://localhost:8000"
 
+current_dir = os.path.dirname(__file__)
+code_reference_file_path = os.path.join(
+    current_dir, '..', 'assets', 'code-reference.txt'
+)
+
 
 @pytest.fixture
 def openai_client():
@@ -81,7 +86,7 @@ def run_id(openai_client: OpenAI, thread_id: str, assistant_id: str):
 @pytest.mark.dependency()
 def test_no_tool_run_execution(openai_client: OpenAI, assistant_id: str):
     file = openai_client.files.create(
-        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+        file=open(code_reference_file_path, "rb"), purpose='assistants'
     )
     vs = openai_client.beta.vector_stores.create(name="my code")
     openai_client.beta.vector_stores.file_batches.create(
@@ -132,7 +137,7 @@ def test_no_tool_run_execution(openai_client: OpenAI, assistant_id: str):
 @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
 def test_file_search_run_executor(openai_client: OpenAI, assistant_id: str):
     file = openai_client.files.create(
-        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+        file=open(code_reference_file_path, "rb"), purpose='assistants'
     )
     vs = openai_client.beta.vector_stores.create(name="my code")
     openai_client.beta.vector_stores.file_batches.create(
@@ -207,7 +212,7 @@ def test_file_search_run_executor(openai_client: OpenAI, assistant_id: str):
 @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
 def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
     file = openai_client.files.create(
-        file=open("./assets/code-reference.txt", "rb"), purpose='assistants'
+        file=open(code_reference_file_path, "rb"), purpose='assistants'
     )
     vs = openai_client.beta.vector_stores.create(name="my code")
     openai_client.beta.vector_stores.file_batches.create(

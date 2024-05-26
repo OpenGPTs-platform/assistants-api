@@ -9,6 +9,11 @@ weaviate_url = os.getenv("WEAVIATE_URL") if os.getenv("WEAVIATE_URL") else None
 use_openai = True if os.getenv("USE_OPENAI") else False
 base_url = "http://localhost:8000"
 
+
+current_dir = os.path.dirname(__file__)
+test_txt_file_path = os.path.join(current_dir, '..', 'assets', 'test.txt')
+test_pdf_file_path = os.path.join(current_dir, '..', 'assets', 'test.pdf')
+
 ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY')
 SECRET_KEY = os.getenv('MINIO_SECRET_KEY')
 MINIO_URL = "localhost:9000"
@@ -44,7 +49,7 @@ def openai_client():
 
 @pytest.mark.dependency()
 def test_create_file(openai_client: OpenAI, minio_client: Minio):
-    with open('./assets/test.txt', 'rb') as file:
+    with open(test_txt_file_path, 'rb') as file:
         response = openai_client.files.create(file=file, purpose="assistants")
     assert isinstance(response, FileObject)
     assert response.id == response.id
@@ -60,7 +65,7 @@ def test_create_file(openai_client: OpenAI, minio_client: Minio):
 
 
 def test_create_file_pdf(openai_client: OpenAI):
-    with open('./assets/test.pdf', 'rb') as file:
+    with open(test_pdf_file_path, 'rb') as file:
         response = openai_client.files.create(file=file, purpose="assistants")
     assert isinstance(response, FileObject)
     assert response.id == response.id
@@ -73,7 +78,7 @@ def test_create_file_pdf(openai_client: OpenAI):
 @pytest.mark.dependency(depends=["test_create_file"])
 def test_retrieve_file(openai_client: OpenAI):
     # Assuming you have a file ID to test with
-    with open('./assets/test.txt', 'rb') as file:
+    with open(test_txt_file_path, 'rb') as file:
         file_created = openai_client.files.create(
             file=file, purpose="assistants"
         )
@@ -90,7 +95,7 @@ def test_retrieve_file(openai_client: OpenAI):
 @pytest.mark.dependency(depends=["test_create_file", "test_retrieve_file"])
 def test_delete_file(openai_client: OpenAI):
     # Step 1: Create a file
-    with open('./assets/test.txt', 'rb') as file:
+    with open(test_txt_file_path, 'rb') as file:
         create_response = openai_client.files.create(
             file=file, purpose="assistants"
         )

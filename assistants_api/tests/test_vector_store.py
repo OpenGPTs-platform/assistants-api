@@ -10,6 +10,10 @@ api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") else None
 use_openai = True if os.getenv("USE_OPENAI") else False
 base_url = "http://localhost:8000"
 
+current_dir = os.path.dirname(__file__)
+test_txt_file_path = os.path.join(current_dir, '..', 'assets', 'test.txt')
+test_pdf_file_path = os.path.join(current_dir, '..', 'assets', 'test.pdf')
+
 
 def id_to_string(id: int) -> str:
     # need to remove all the - from the uuid
@@ -42,13 +46,13 @@ def weaviate_client():
 
 @pytest.fixture
 def file_pdf(openai_client: OpenAI):
-    with open("./assets/test.pdf", "rb") as file:
+    with open(test_pdf_file_path, "rb") as file:
         return openai_client.files.create(file=file, purpose="assistants")
 
 
 @pytest.fixture
 def file_txt(openai_client: OpenAI):
-    with open("./assets/test.txt", "rb") as file:
+    with open(test_txt_file_path, "rb") as file:
         return openai_client.files.create(file=file, purpose="assistants")
 
 
