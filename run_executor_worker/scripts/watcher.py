@@ -22,7 +22,6 @@ class Watcher:
             print("Shutting down gracefully...")
 
     def start_process(self):
-        print("Starting process...")
         if platform.system() == 'Windows':
             self.process = subprocess.Popen(
                 self.command,
@@ -35,7 +34,6 @@ class Watcher:
             )
 
     def stop_process(self):
-        print("Stopping process...")
         if self.process:
             if platform.system() == 'Windows':
                 self.process.send_signal(signal.CTRL_BREAK_EVENT)
