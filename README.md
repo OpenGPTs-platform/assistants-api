@@ -13,7 +13,7 @@ Architecture
 1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
 2. Execute [`,/rundev`](./rundev)
 3. Its running 🥳!
-4. In a new directory and environment, install the `openai` client fork with `pip install git+https://github.com/OpenGPTs-platform/openai-python.git`, and try it with the following demo 
+4. In a new directory and environment, install the `openai` client fork with `pip install IPython git+https://github.com/OpenGPTs-platform/openai-python.git`, and try it with the following demo (NOTE: update `YOUR_FILE_PATH` with your file path that you want to test retrieval with). Also it may now
 ```py
 from openai import OpenAI
 client = OpenAI(
@@ -23,7 +23,7 @@ client = OpenAI(
 
 # Upload file to the server
 file = client.files.create(
-    file=open('my_information.txt', 'rb'), # Input your file path (currently accepts .txt and .pdf files)
+    file=open('YOUR_FILE_PATH', 'rb'), # Input your file path (currently accepts .txt and .pdf files)
     purpose='assistants'
 )
 
