@@ -1,40 +1,96 @@
 # assistants-api
-Note: currently support client `openai==1.13.4`
+Replicate and improve the OpenAI Assistants API
+Note: currently support client `openai==1.26.0` (excluding custom tools like `web_retriever`) or use our fork by `pip install git+https://github.com/OpenGPTs-platform/openai-python.git`
+
+
 ### [Video Demo (full OpenGPTs-platform)](https://youtu.be/yPdIEKb3jWc)
 
 Architecture
+![image](https://github.com/OpenGPTs-platform/assistants-api/assets/37946988/faa5a4b2-1186-49b8-a80b-39c4fc00b772)
+
+### Quickstart
+1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
+2. Execute [`,/rundev`](./rundev)
+3. Its running 🥳!
+4. Try it with the following demo 
+```py
+from openai import OpenAI
+client = OpenAI(
+    base_url="http://localhost:8000",
+    api_key="NO_KEY_NEEDED",
+)
+
+# Upload file to the server
+file = client.files.create(
+    file=open('my_information.txt', 'rb'), # Input your file path (currently accepts .txt and .pdf files)
+    purpose='assistants'
+)
+
+# Create vector store with the file id
+vs = client.beta.vector_stores.create(
+    name='my_info',
+    file_ids=[file.id]
+)
+
+# Create an assistant with the vector store passed in
+asst = client.beta.assistants.create(
+    name="Demo Assistant",
+    instructions="Always start your responses for with the word 'APPLE'",
+    model="gpt-4-turbo",
+    tools=[{"type": "file_search"}, {"type": "web_retrieval"}],
+    tool_resources={
+        "file_search": {
+            "vector_store_ids": [vs.id]
+        }
+    },
+)
+
+# Create a thread with or without messages
+thr = client.beta.threads.create(
+    messages=[
+        {
+            "role": "user",
+            "content": "I am curious what is in the file I provided"
+        }
+    ],
+)
+
+# Execute the run (Adds run to RabbitMQ for to be dequeued and processed by run_executor_worker)
+run = client.beta.threads.runs.create(
+    thread_id=thr.id,
+    assistant_id=asst.id
+)
+
+# Poll the response untill complete (streaming not yet supported)
+from IPython.display import clear_output
+import time
+while run.status not in ['completed', 'failed']:
+    time.sleep(1)
+    clear_output(wait=True)
+    run = client.beta.threads.runs.retrieve(thread_id=thr.id, run_id=run.id)
+    print("RUN STATUS:\n",run.status)
+    messages = client.beta.threads.messages.list(thread_id=thr.id, order='desc')
+    print("THREAD MESSAGES:\n",messages.model_dump_json(indent=2))
+``` 
+## [assistants_api](./assistants_api)
 ![image](https://github.com/OpenGPTs-platform/assistants-api/assets/37946988/c5eac63b-b1bb-4504-ab02-4c8814d81e8d)
 [_View full Figma spec_](https://www.figma.com/file/RBobTMUNS6EtelpTDyYqnA/Open-GPTs?type=whiteboard&node-id=0%3A1&t=Ga2G6MUOUiNjqe3l-1)
 
-Immitate the OpenAI Assistants API in FastAPI using the official [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml).
+Handle the business logic (store and retrieve data, store files, enque runs) for the Assistants API according to the official [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml).
 
 The [OpenAI OpenAPI specification](https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml) is the source of truth for this API.
 
-# Quickstart
+## [run_executor_worker](./run_executor_worker)
+![image](https://github.com/OpenGPTs-platform/HexAmerous/assets/37946988/610c60fe-ad01-4231-aec2-84c9a295ed30)
+[_View full Figma spec_](https://www.figma.com/file/RBobTMUNS6EtelpTDyYqnA/Open-GPTs?type=whiteboard&node-id=0%3A1&t=Ga2G6MUOUiNjqe3l-1)
 
-1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
-2. Run the dev environment with [`rundev.sh`](./rundev.sh) script.
-3. Simply edit the host for your OpenAI client and you can use this API in the same way:
+Agent that executes runs according to CoALA architecture and ReAct prompting strategy.
 
-```python
-client_to_oai = OpenAI(api_key="sk-...") # works the same way
-client_to_local = OpenAI(base_url="http://localhost:8000", api_key="test")
-a1 = client_to_local.beta.assistants.create(model="gpt-3.5-turbo", name="test")
-a2 = client_to_local.beta.assistants.create(model="gpt-3.5-turbo", instruction="You are real-human")
-for assistant in client_to_local.beta.assistants.list().data:
-    print(client_to_local)
-    client_to_local.beta.assistants.delete(assistant.id)
-```
-
-
-# Development
-## Quickstart
-1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
-2. Create a virtual environment and install dependencies `python -m venv .venv`. Activate it.
-3. Install dependencies `pip install -r requirements.txt`.
-4. Install pre-commit hooks `pre-commit install`.
-5. Run the dev environment with [`rundev.sh`](./rundev.sh) script.
-6. Run tests to verify everything is working `pytest`.
+## Major Objectives
+1. Function calling for [run_executor_worker](./run_executor_worker) using [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3)
+2. Connect [chat-ui](https://github.com/OpenGPTs-platform/chat-ui)
+3. Optimize prompting in [run_executor_worker](./run_executor_worker)
+4. Open-source `web_retrieval` and add `annotations` to messages for citation purposes
 
 ## Helper ["Assistants API" Dev Assistant GPT](https://chat.openai.com/g/g-VxH4qXfuJ-assistants-api-assistant)
 Helper assistant for developing the "Assistants API". Normally conversation will flow like so:
