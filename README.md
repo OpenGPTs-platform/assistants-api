@@ -9,6 +9,7 @@ Architecture
 ![image](https://github.com/OpenGPTs-platform/assistants-api/assets/37946988/faa5a4b2-1186-49b8-a80b-39c4fc00b772)
 
 ### Quickstart
+0. Clone the repo `git clone https://github.com/OpenGPTs-platform/assistants-api.git` and navigate into `assistants-api`directory
 1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
 2. Execute [`,/rundev`](./rundev)
 3. Its running 🥳!
