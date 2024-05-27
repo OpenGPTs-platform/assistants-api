@@ -13,7 +13,7 @@ Architecture
 1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
 2. Execute [`,/rundev`](./rundev)
 3. Its running 🥳!
-4. Try it with the following demo 
+4. In a new directory and environment, install the `openai` client fork with `pip install git+https://github.com/OpenGPTs-platform/openai-python.git`, and try it with the following demo 
 ```py
 from openai import OpenAI
 client = OpenAI(
