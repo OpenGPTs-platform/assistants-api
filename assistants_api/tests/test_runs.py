@@ -147,7 +147,7 @@ def test_run_execution(
     openai_client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
-        content="What year was the Apollo 11 moon landing (answer concisely)",
+        content="What year was the Apollo 11 moon landing (answer concisely)",  # 1969
     )
     response = openai_client.beta.threads.runs.create(
         thread_id=thread_id,

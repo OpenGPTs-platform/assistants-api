@@ -1,8 +1,13 @@
 from constants import PromptKeys
 from utils.context import context_trimmer
-from utils.openai_clients import litellm_client
+from utils.openai_clients import (
+    fc_chat_completions_create,
+    litellm_client,
+    ChatCompletion,
+)
 import os
 from run_executor import main
+import json
 
 
 class RouterAgent:
@@ -12,25 +17,8 @@ class RouterAgent:
     ):
         self.execute_run_class = execute_run_class
 
-        self.role_instructions = f"""Your role is to determine whether tools will be absolutely necessary to complete the task at hand.
-If tools are not necessary, generate a normal response.
-Otherwise if you will need to use tools, respond with '{PromptKeys.TRANSITION.value}'."""  # noqa
-
     def compose_system_prompt(self) -> str:
-        tools_list = "\n".join(
-            [
-                f"- {tool.type}: {tool.description}"
-                for _, tool in self.execute_run_class.tools_map.items()
-            ]
-        )
-        return f"""SYSTEM INSTRUCTION
-```{self.role_instructions}
-
-The tools available to you are:
-{tools_list}```
-
-ADDITIONAL INSTRUCTION
-```{self.execute_run_class.assistant.instructions}```"""
+        return f"""USER_INSTRUCTION:```{self.execute_run_class.assistant.instructions}```"""  # noqa
 
     # TODO: add assistant and base tools off of assistant
     def generate(
@@ -48,13 +36,6 @@ ADDITIONAL INSTRUCTION
         """  # noqa
 
         # Build messages to send to the model
-        messages = [
-            {
-                "role": "system",
-                "content": self.compose_system_prompt(),
-            }
-        ]
-        print("\n\nSYSTEM PROMPT: ", messages[0]["content"])
         cleaned_messages = []
         for message in self.execute_run_class.messages.data:
             cleaned_messages.append(
@@ -71,17 +52,72 @@ ADDITIONAL INSTRUCTION
                 max_length=self.execute_run_class.run.max_prompt_tokens * 3,
                 trim_start=True,
             )
-        # print trimmed messages length vs cleaned messages length
-        messages += trimmed_messages
+
+        messages = [
+            {
+                "role": "system",
+                "content": self.compose_system_prompt(),
+            }
+        ] + trimmed_messages
+        try:
+            tools_list = "\n".join(
+                [
+                    f"- {tool.type}: {tool.description}"
+                    for _, tool in self.execute_run_class.tools_map.items()
+                ]
+            )
+            examples = """User input 'Tell me about the Machu Pichu'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": false}}]'
+User input 'I like coding, show me my code'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": true}}]'
+User input 'Browse UF to tell me about its current scholarships'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": true}}]'
+User input 'It is 5 degrees celcius outside, what should I wear?'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": false}}]'"""  # noqa
+
+            tools_needed_response: ChatCompletion = fc_chat_completions_create(
+                model=os.getenv("FC_MODEL"),
+                messages=messages,
+                tools=[
+                    {
+                        'type': 'function',
+                        'function': {
+                            'name': 'determine_tools_needed',
+                            'description': f"""The following tools are available to you:```{tools_list}```
+Determine if those tools are needed to respond to the user's message.
+Examples:```{examples}```""",  # noqa
+                            'parameters': {
+                                'type': 'object',
+                                'properties': {
+                                    'tools_needed': {
+                                        'type': 'boolean',
+                                        'description': 'Are the tools necessary.',  # noqa
+                                    }
+                                },
+                                'required': ['tools_needed'],
+                            },
+                        },
+                    }
+                ],
+                max_tokens=28,
+            )
+
+            # parse the response to get the arguments
+            print("\n\nTool needed response:\n", tools_needed_response)
+            tools_needed_args = json.loads(
+                tools_needed_response.choices[0]
+                .message.tool_calls[0]
+                .function.arguments
+            )
+            if tools_needed_args["tools_needed"]:
+                return PromptKeys.TRANSITION.value
+            else:
+                pass
+        except Exception as e:
+            print("Error with tools_needed_response:", e)
 
         response = litellm_client.chat.completions.create(
             model=os.getenv("LITELLM_MODEL"),
             messages=messages,
-            max_tokens=500,
+            max_tokens=2000,
         )
 
         print("GENERATION: ", response.choices[0].message.content)
-        if PromptKeys.TRANSITION.value in response.choices[0].message.content:
-            return PromptKeys.TRANSITION.value
-        else:
-            return response.choices[0].message.content
+
+        return response.choices[0].message.content

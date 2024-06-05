@@ -7,7 +7,12 @@ from utils.context import context_trimmer
 from utils.tools import ActionItem, Actions, actions_to_map, tools_to_map
 from utils.ops_api_handler import create_message_runstep
 from actions import web_retrieval, file_search
-from utils.openai_clients import litellm_client, assistants_client
+from utils.openai_clients import (
+    litellm_client,
+    assistants_client,
+    fc_chat_completions_create,
+    ChatCompletion,
+)
 from data_models import run
 import os
 from openai.types.beta import Assistant
@@ -63,8 +68,7 @@ class CoALA:
     def generate_question(self) -> ReactStep:
         coala_prompt = self.compose_coala_prompt()
         tools_list_prompt = "[" + ", ".join(list(self.tool_items.keys())) + "]"
-        latest_message = self.messages.data[-1].content[0].text.value
-        orchestrator_instruction = f"""Summarize the purpose of the message <<{latest_message}>> into a single comprehensive statement.
+        orchestrator_instruction = f"""Summarize the objective of the latest message using any conversation context as needed.
 Ensure that the summary includes all relevant details needed for effective use of the following tools: {tools_list_prompt}.
 You must always begin with "{ReactStepType.QUESTION.value}: " ."""  # noqa
 
@@ -136,31 +140,52 @@ You must always begin with "{ReactStepType.THOUGHT.value}: " ."""  # noqa
     def generate_action(
         self,
     ) -> ReactStep:
-        coala_prompt = self.compose_coala_prompt()
-        orchestrator_instruction = f"""Your role is to determine which "Action" to use next.
-You should only use an action once, do not repeat actions.
-You must always begin with "{ReactStepType.ACTION.value}: " .
+        coala_prompt = self.compose_coala_prompt(action_fc=True)
 
-"""  # noqa
         generator_messages = [
             {
                 "role": "user",
-                "content": orchestrator_instruction + coala_prompt,
+                "content": coala_prompt,
             }
         ]
-        response = litellm_client.chat.completions.create(
-            model=os.getenv("LITELLM_MODEL"),
-            messages=generator_messages,
-            max_tokens=100,
+        actions_prompt = "\n".join(
+            f"- {tool.type} ({tool.description})"
+            for _, tool in self.tool_items.items()
         )
-        content = response.choices[0].message.content
-        stripped_content = self.strip_generated_react_step(
-            content,
-            ReactStepType.ACTION.value + ":",
-            ReactStepType.OBSERVATION.value,
+        actions_list = list(self.tool_items.keys())
+
+        response: ChatCompletion = fc_chat_completions_create(
+            model=os.getenv("FC_MODEL"),
+            messages=generator_messages,
+            tools=[
+                {
+                    'type': 'function',
+                    'function': {
+                        'name': 'determine_next_action',
+                        'description': f"""The actions are available to you:```{actions_prompt}```
+Determine which action to perform next. You should only use an action once, do not repeat actions.""",  # noqa
+                        'parameters': {
+                            'type': 'object',
+                            'properties': {
+                                'next_action': {
+                                    'type': 'string',
+                                    'enum': actions_list,
+                                    'description': 'Next action to perform.',  # noqa
+                                }
+                            },
+                            'required': ['next_action'],
+                        },
+                    },
+                }
+            ],
+            max_tokens=35,
+        )
+        print("\n\nNext action response:\n", response)
+        response_args = json.loads(
+            response.choices[0].message.tool_calls[0].function.arguments
         )
         for key in self.tool_items.keys():
-            if key == stripped_content:
+            if key == response_args["next_action"]:
                 react_step = ReactStep(
                     step_type=ReactStepType.ACTION, content=Actions(key).value
                 )
@@ -168,7 +193,7 @@ You must always begin with "{ReactStepType.ACTION.value}: " .
                 return react_step
 
         # raise error if no action is found
-        raise ValueError(f"No action found in response: {content}")
+        raise ValueError(f"No action found in response: {response}")
 
     def execute_action(self, action: Actions) -> ReactStep:
         if action == Actions.COMPLETION:
@@ -234,6 +259,7 @@ You must always begin with "Final Answer: " ."""  # noqa
 
     def compose_coala_prompt(
         self,
+        action_fc: bool = False,
     ) -> str:
         few_shot_instruction = self.compose_few_shot_instruction()
         react_trace_prompt = self.compose_react_trace()
@@ -244,6 +270,28 @@ You must always begin with "Final Answer: " ."""  # noqa
         user_instruction = (
             self.compose_user_instruction()
         )  # TODO: the user instruction should not be appended here
+
+        if action_fc:
+            examples = """User input '...I have retrieved the information needed.'; Assistant response '[{{"name": "determine_next_action", "arguments": {{"next_action": "{}"}}}}]'""".format(  # noqa
+                Actions.COMPLETION.value
+            )
+            for _, tool in self.tool_items.items():
+                if tool.type == Actions.FILE_SEARCH.value:
+                    examples += """\nUser input '...I need to retrieve information from...'; Assistant response '[{{"name": "determine_next_action", "arguments": {{"next_action": "{}"}}}}]'""".format(  # noqa
+                        Actions.FILE_SEARCH.value
+                    )
+
+            return f"""{user_instruction}You will observe that there may already be steps after "Begin!".
+The actions available to you are:
+{tools_prompt}
+
+Description of the reasoning and acting format:
+{few_shot_instruction}
+
+Reasoning and acting trace so far:
+{react_trace_prompt}
+
+Examples:```{examples}```"""  # noqa
 
         return f"""{user_instruction}You will observe that there may already be steps after "Begin!".
 The actions available to you are:

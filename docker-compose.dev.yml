@@ -112,6 +112,10 @@ services:
       LITELLM_API_KEY: $LITELLM_API_KEY
       LITELLM_MODEL: $LITELLM_MODEL
       WEAVIATE_HOST: weaviate
+      FC_API_URL: $FC_API_URL
+      FC_API_KEY: $FC_API_KEY
+      FC_MODEL: $FC_MODEL
+
     command: sh -c "sleep 10 && python scripts/watcher.py"
 
 volumes:
