@@ -105,6 +105,8 @@ class ExecuteRun:
 
             max_steps = 8
             curr_step = 0
+
+            requires_action = False
             while (
                 coala_class.react_steps[-1].step_type
                 != coala.ReactStepType.FINAL_ANSWER
@@ -113,15 +115,19 @@ class ExecuteRun:
                 self.runsteps = coala_class.retrieve_runsteps()
                 coala_class.generate_thought()
                 coala_class.generate_action()
-                coala_class.execute_action(
-                    Actions(coala_class.react_steps[-1].content)
-                )
+                current_action = Actions(coala_class.react_steps[-1].content)
+                coala_class.execute_action(current_action)
+
                 print(
                     f"""\n\nStep {curr_step} completed.
     with react steps:
     {json.dumps([step.model_dump() for step in coala_class.react_steps], indent=2)}"""
                 )
                 curr_step += 1
+
+                if current_action == Actions.FUNCTION:
+                    requires_action = True
+                    break
                 if curr_step >= max_steps:
                     break
             # if while completes from the if statement, then print("success") else if it breaks from the while loop, print("failure") # noqa
@@ -132,6 +138,21 @@ class ExecuteRun:
                 run_update = run.RunUpdate(
                     status=run.RunStatus.COMPLETED.value,
                     completed_at=int(datetime.datetime.now().timestamp()),
+                )
+            elif requires_action:
+                latest_react_step = coala_class.react_steps[-1]
+                run_update = run.RunUpdate(
+                    status=run.RunStatus.REQUIRES_ACTION.value,
+                    required_action=run.RequiredAction.model_validate(
+                        {
+                            "submit_tool_outputs": {
+                                "tool_calls": [
+                                    json.loads(latest_react_step.content)
+                                ]
+                            },
+                            "type": "submit_tool_outputs",
+                        }
+                    ),
                 )
             else:
                 run_update = run.RunUpdate(

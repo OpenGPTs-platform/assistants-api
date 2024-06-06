@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Literal, Optional, List, Any, Union
 from enum import Enum
-from openai.types.beta.threads.run import Run
+from openai.types.beta.threads.run import Run, RequiredAction
 from openai.types.beta.threads.runs import (
     RunStep,
     MessageCreationStepDetails,
@@ -10,6 +10,7 @@ from openai.types.beta.threads.runs import (
 
 Run
 RunStep
+RequiredAction
 
 
 class RunUpdate(BaseModel):
@@ -26,6 +27,7 @@ class RunUpdate(BaseModel):
     status: Optional[str] = None
     tools: Optional[Any] = None
     usage: Optional[Any] = None
+    required_action: Optional[RequiredAction] = None
 
 
 class RunStatus(str, Enum):

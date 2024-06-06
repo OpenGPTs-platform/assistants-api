@@ -284,3 +284,38 @@ def test_execute_full_fc_run(
 #   "top_p": 1.0,
 #   "tool_resources": {}
 # }
+
+
+# Example run step response
+# {
+#     "id": "step_I1VoVmk6xgaRRSmwUmK4jeqS",
+#     "assistant_id": "asst_n9OeD7LxXHOAqwntzE4GQA0q",
+#     "cancelled_at": null,
+#     "completed_at": null,
+#     "created_at": 1717650165,
+#     "expired_at": null,
+#     "failed_at": null,
+#     "last_error": null,
+#     "metadata": null,
+#     "object": "thread.run.step",
+#     "run_id": "run_r5BUD3mknzLHNjuKaHKiGI9r",
+#     "status": "in_progress",
+#     "step_details": {
+#     "tool_calls": [
+#         {
+#         "id": "call_9GzmopsuKPVfmHWGqNotTDu5",
+#         "function": {
+#             "arguments": "{\"location\":\"San Francisco\",\"unit\":\"Celsius\"}",
+#             "name": "get_current_temperature",
+#             "output": null
+#         },
+#         "type": "function"
+#         }
+#     ],
+#     "type": "tool_calls"
+#     },
+#     "thread_id": "thread_8vqZzH15vzPSI5dGKS1Nx28e",
+#     "type": "tool_calls",
+#     "usage": null,
+#     "expires_at": 1717650764
+# }

@@ -1,5 +1,6 @@
 # api_handler.py
 from typing import List, Literal
+import uuid
 import requests
 import os
 from data_models import run
@@ -8,7 +9,9 @@ from openai.types.beta.threads.runs import FileSearchToolCall
 from openai.types.beta.threads.runs.web_retrieval_tool_call import (
     WebRetrievalToolCall,
 )
+from openai.types.beta.threads.runs.function_tool_call import Function
 from utils.openai_clients import assistants_client
+
 
 # TODO: create run script that imports env vars
 BASE_URL = os.getenv("ASSISTANTS_API_URL")
@@ -145,6 +148,46 @@ def create_web_retrieval_runstep(
         },
         "type": "tool_calls",
         "status": "completed",
+    }
+
+    # This model dumping part would be dependent on how you're handling Pydantic models, showing a conceptual example: # noqa
+    run_step_details = run.RunStepCreate(**run_step_details).model_dump(
+        exclude_none=True
+    )
+
+    # Post request to create a run step
+    response = requests.post(
+        f"{BASE_URL}/ops/threads/{thread_id}/runs/{run_id}/steps",
+        json=run_step_details,
+    )
+    if response.status_code != 200:
+        raise Exception(f"Failed to create run step: {response.text}")
+
+    return run.RunStep(**response.json())
+
+
+def create_function_runstep(
+    thread_id: str,
+    run_id: str,
+    assistant_id: str,
+    function: Function,
+) -> dict:
+    # Prepare run step details with the tool call
+    run_step_details = {
+        "assistant_id": assistant_id,
+        "step_details": {
+            "type": "tool_calls",
+            "tool_calls": [
+                {
+                    "id": "call_"
+                    + str(uuid.uuid4()),  # This should be a unique identifier.
+                    "function": function,
+                    "type": "function",
+                }
+            ],  # Serialize `ToolCall` to a dict
+        },
+        "type": "tool_calls",
+        "status": "in_progress",
     }
 
     # This model dumping part would be dependent on how you're handling Pydantic models, showing a conceptual example: # noqa

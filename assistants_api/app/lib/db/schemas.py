@@ -17,7 +17,6 @@ from openai.types.beta.vector_stores.vector_store_file_batch import (
 )
 
 from openai.pagination import SyncCursorPage
-from openai.types.beta.threads import Run
 from openai.types.beta.threads.message_create_params import Attachment
 from openai.types.beta import assistant_update_params, assistant_create_params
 from openai.types.beta.threads.runs import (
@@ -25,6 +24,7 @@ from openai.types.beta.threads.runs import (
     MessageCreationStepDetails,
     ToolCallsStepDetails,
 )
+from openai.types.beta.threads.run import Run, RequiredAction
 from openai.types.beta.threads.text_content_block import TextContentBlock
 from openai.types.beta.threads.text import Text
 from openai.types.beta.threads import run_create_params
@@ -151,6 +151,7 @@ class RunUpdate(BaseModel):
     status: Optional[str] = None
     tools: Optional[Any] = None
     usage: Optional[Any] = None
+    required_action: Optional[RequiredAction] = None
 
 
 class RunStepCreate(BaseModel):

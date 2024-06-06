@@ -50,13 +50,16 @@ def tools_to_map(tools: List[AssistantTool]) -> dict[str, ActionItem]:
     """
     Converts a list of AssistantTool objects to a dictionary.
     """
-    tools_map = {}
+    tools_map: dict[str, ActionItem] = {}
     for tool in tools:
         if isinstance(tool, FunctionTool):
-            tools_map[tool.type] = ActionItem(
-                type=tool.type,
-                description="Generates text based on input data.",
-            )
+            if not tools_map.get(tool.type):
+                tools_map[tool.type] = ActionItem(
+                    type=tool.type,
+                    description="Function calls available to you are: ",
+                )
+            tools_map[tool.type].description += f"{tool.function.model_dump()}"
+
         elif isinstance(tool, FileSearchTool):
             tools_map[tool.type] = ActionItem(
                 type=tool.type,

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from utils.context import context_trimmer
 from utils.tools import ActionItem, Actions, actions_to_map, tools_to_map
 from utils.ops_api_handler import create_message_runstep
-from actions import web_retrieval, file_search
+from actions import web_retrieval, file_search, function_calling_tool
 from utils.openai_clients import (
     litellm_client,
     assistants_client,
@@ -148,7 +148,7 @@ You must always begin with "{ReactStepType.THOUGHT.value}: " ."""  # noqa
                 "content": coala_prompt,
             }
         ]
-        actions_prompt = "\n".join(
+        actions_prompt = "\n\n".join(
             f"- {tool.type} ({tool.description})"
             for _, tool in self.tool_items.items()
         )
@@ -220,6 +220,17 @@ Determine which action to perform next. You should only use an action once, do n
             )
             self.react_steps.append(react_step)
             return react_step
+        elif action == Actions.FUNCTION:
+            fct = function_calling_tool.FunctionCallingTool(self)
+            run_step = fct.generate_tool_call()
+            react_step = ReactStep(
+                step_type=ReactStepType.OBSERVATION,
+                content=json.dumps(
+                    run_step.step_details.tool_calls[0].model_dump()
+                ),
+            )
+            self.react_steps.append(react_step)
+
         else:
             raise ValueError(f"Action {action} not supported")
 
