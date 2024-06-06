@@ -47,7 +47,6 @@ class FunctionCallingTool:
             self.coala_class.assistant_id,
             function,
         )
-        print("\n\n\nIn GENERATE post create run step ")
 
         return run_step
 

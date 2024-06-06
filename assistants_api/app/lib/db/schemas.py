@@ -24,6 +24,7 @@ from openai.types.beta.threads.runs import (
     MessageCreationStepDetails,
     ToolCallsStepDetails,
 )
+from openai.types.beta.threads.run_submit_tool_outputs_params import ToolOutput
 from openai.types.beta.threads.run import Run, RequiredAction
 from openai.types.beta.threads.text_content_block import TextContentBlock
 from openai.types.beta.threads.text import Text
@@ -51,6 +52,7 @@ ExpiresAfter,
 VectorStoreFileBatch
 TextContentBlock
 Text
+ToolOutput
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -198,3 +200,8 @@ class CreateVectorStoreFileBatchRequest(BaseModel):
     file_ids: List[str] = Field(
         ..., min_items=1, max_items=500, example=["file-abc123", "file-abc456"]
     )
+
+
+class SubmitToolOutputsRunRequest(BaseModel):
+    tool_outputs: List[ToolOutput]
+    stream: Optional[bool] = None

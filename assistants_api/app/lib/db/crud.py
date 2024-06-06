@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 import time
 from sqlalchemy import desc, asc
+from sqlalchemy.orm.attributes import flag_modified
 
 from lib.fs.schemas import FileObject
 from . import models, schemas
@@ -659,3 +660,85 @@ def update_file_batch(db: Session, file_batch_id: str, updates: dict):
         db.refresh(db_vector_store)
         return db_vector_store
     return None
+
+
+def submit_tool_outputs(
+    db: Session,
+    thread_id: str,
+    run_id: str,
+    tool_outputs: List[schemas.ToolOutput],
+):
+    print("\n\n\nIn CRUD")
+    run = (
+        db.query(models.Run)
+        .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)
+        .first()
+    )
+    if not run:
+        raise ValueError("Run not found")
+
+    # Ensure all required tool outputs are provided
+    required_tool_calls = {
+        call['id']
+        for call in run.required_action['submit_tool_outputs']['tool_calls']
+    }
+    provided_tool_calls = {
+        tool_output["tool_call_id"] for tool_output in tool_outputs
+    }
+    missing_tool_calls = required_tool_calls - provided_tool_calls
+
+    if missing_tool_calls:
+        raise ValueError(
+            f"Expected tool outputs for call_ids {list(required_tool_calls)}, got {list(provided_tool_calls)}"  # noqa
+        )
+
+    # Update run status
+    run.status = 'queued'
+    run.required_action = None
+    db.commit()
+    db.refresh(run)
+
+    # Find the latest run step
+    run_step = (
+        db.query(models.RunStep)
+        .filter(models.RunStep.run_id == run_id)
+        .order_by(models.RunStep.created_at.desc())
+        .first()
+    )
+    if not run_step:
+        raise ValueError("Run step not found")
+
+    # Validate the latest step has the tool calls
+    if run_step.step_details['type'] != 'tool_calls':
+        raise ValueError("The latest run step is not of type 'tool_calls'")
+
+    tool_call_ids_in_step = {
+        call['id'] for call in run_step.step_details['tool_calls']
+    }
+    if not required_tool_calls.issubset(tool_call_ids_in_step):
+        raise ValueError(
+            "The latest run step does not contain the required tool calls"
+        )
+
+    # Update the latest step
+    run_step.status = 'completed'
+    run_step.completed_at = int(time.time())
+    new_tool_calls = []
+    for call in run_step.step_details['tool_calls']:
+        related_tool_output = next(
+            (
+                output
+                for output in tool_outputs
+                if output['tool_call_id'] == call['id']
+            ),
+            None,
+        )
+        call["function"]["output"] = related_tool_output["output"]
+        new_tool_calls.append({**call})
+    run_step.step_details['tool_calls'] = [*new_tool_calls]
+
+    flag_modified(run_step, 'step_details')  # Mark step_details as modified
+    db.commit()
+    db.refresh(run_step)
+
+    return run

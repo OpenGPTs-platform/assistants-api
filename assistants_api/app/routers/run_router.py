@@ -70,3 +70,43 @@ def cancel_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return db_to_pydantic_run(run)
+
+
+@router.post(
+    "/threads/{thread_id}/runs/{run_id}/submit_tool_outputs",
+    response_model=schemas.Run,
+)
+def submit_tool_outputs(
+    *,
+    thread_id: str = Path(
+        ..., description="The ID of the thread to which this run belongs."
+    ),
+    run_id: str = Path(
+        ...,
+        description="The ID of the run that requires the tool output submission.",
+    ),
+    body: schemas.SubmitToolOutputsRunRequest = Body(
+        ..., description="Request body containing tool outputs."
+    ),
+    db: Session = Depends(database.get_db),
+    broker: RabbitMQBroker = Depends(get_broker),
+):
+    # Logic to handle the submission of tool outputs
+    # This will involve updating the database and performing necessary actions
+    try:
+        db_run = crud.submit_tool_outputs(
+            db=db,
+            thread_id=thread_id,
+            run_id=run_id,
+            tool_outputs=body.tool_outputs,
+        )
+        # After successful creation, publish the run ID to the RabbitMQ queue
+        data = {"thread_id": thread_id, "run_id": str(db_run.id)}
+        message = json.dumps(data)
+        broker.publish("runs_queue", message)
+        broker.close_connection()
+
+        return db_to_pydantic_run(db_run)
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
