@@ -1,7 +1,7 @@
 from utils.ops_api_handler import (
     create_function_runstep,
 )
-from utils.openai_clients import fc_chat_completions_create
+from utils.openai_clients import fc_client
 from openai.types.beta.threads.runs.function_tool_call import Function
 from data_models import run
 import os
@@ -23,7 +23,7 @@ class FunctionCallingTool:
             for tool in self.coala_class.assistant.tools
             if tool.type == "function"
         ]
-        tool_call = fc_chat_completions_create(
+        tool_call = fc_client.chat.completions.create(
             messages=[
                 {
                     "role": "user",
@@ -34,6 +34,7 @@ class FunctionCallingTool:
             model=os.getenv("FC_MODEL"),
             tools=function_tools,
         )
+        print("\n\ntool_call:\n", tool_call)
         function = tool_call.choices[0].message.tool_calls[0].function
         # cast to run steps function
         function = Function(

@@ -10,7 +10,7 @@ from actions import web_retrieval, file_search, function_calling_tool
 from utils.openai_clients import (
     litellm_client,
     assistants_client,
-    fc_chat_completions_create,
+    fc_client,
     ChatCompletion,
 )
 from data_models import run
@@ -154,7 +154,7 @@ You must always begin with "{ReactStepType.THOUGHT.value}: " ."""  # noqa
         )
         actions_list = list(self.tool_items.keys())
 
-        response: ChatCompletion = fc_chat_completions_create(
+        response: ChatCompletion = fc_client.chat.completions.create(
             model=os.getenv("FC_MODEL"),
             messages=generator_messages,
             tools=[
@@ -179,6 +179,10 @@ Determine which action to perform next. You should only use an action once, do n
                 }
             ],
             max_tokens=35,
+            tool_choice={
+                "type": "function",
+                "function": {"name": "determine_next_action"},
+            },
         )
         print("\n\nNext action response:\n", response)
         response_args = json.loads(

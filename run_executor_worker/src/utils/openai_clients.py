@@ -27,7 +27,7 @@ if not os.getenv("LITELLM_API_URL"):
 if not os.getenv("ASSISTANTS_API_URL"):
     raise ValueError("ASSISTANTS_API_URL is not set")
 if not os.getenv("FC_API_URL"):
-    raise ValueError("FC_API_URL is not set")
+    print("FC_API_URL is not set. Defaulting to OpenAI inference.")
 
 litellm_client = None
 if os.getenv("LITELLM_API_URL"):
@@ -43,6 +43,16 @@ else:
 assistants_client = OpenAI(
     base_url=os.getenv("ASSISTANTS_API_URL"),
 )
+
+if os.getenv("FC_API_URL"):
+    fc_client = OpenAI(
+        base_url=os.getenv("FC_API_URL"),
+        api_key=os.getenv("FC_API_KEY"),
+    )
+else:
+    fc_client = OpenAI(
+        api_key=os.getenv("FC_API_KEY"),
+    )
 
 
 def chat_completion_inputs_to_prompt(

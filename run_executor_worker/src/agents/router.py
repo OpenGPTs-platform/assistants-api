@@ -1,7 +1,7 @@
 from constants import PromptKeys
 from utils.context import context_trimmer
 from utils.openai_clients import (
-    fc_chat_completions_create,
+    fc_client,
     litellm_client,
     ChatCompletion,
 )
@@ -66,12 +66,7 @@ class RouterAgent:
                     for _, tool in self.execute_run_class.tools_map.items()
                 ]
             )
-            examples = """User input 'Tell me about the Machu Pichu'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": false}}]'
-User input 'I like coding, show me my code'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": true}}]'
-User input 'Browse UF to tell me about its current scholarships'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": true}}]'
-User input 'It is 5 degrees celcius outside, what should I wear?'; Assistant response '[{"name": "determine_tools_needed", "arguments": {"tools_needed": false}}]'"""  # noqa
-
-            tools_needed_response: ChatCompletion = fc_chat_completions_create(
+            tools_needed_response: ChatCompletion = fc_client.chat.completions.create(
                 model=os.getenv("FC_MODEL"),
                 messages=messages,
                 tools=[
@@ -80,8 +75,7 @@ User input 'It is 5 degrees celcius outside, what should I wear?'; Assistant res
                         'function': {
                             'name': 'determine_tools_needed',
                             'description': f"""The following tools are available to you:```{tools_list}```
-Determine if those tools are needed to respond to the user's message.
-Examples:```{examples}```""",  # noqa
+Determine if those tools are needed to respond to the user's message.""",  # noqa
                             'parameters': {
                                 'type': 'object',
                                 'properties': {
@@ -96,6 +90,10 @@ Examples:```{examples}```""",  # noqa
                     }
                 ],
                 max_tokens=28,
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "determine_tools_needed"},
+                },
             )
 
             # parse the response to get the arguments

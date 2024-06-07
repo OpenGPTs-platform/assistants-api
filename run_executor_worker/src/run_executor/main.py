@@ -71,12 +71,11 @@ class ExecuteRun:
             )
             self.messages = messages
 
-            latest_runstep = self.runsteps.data[0]
             if (
                 len(self.runsteps.data)
-                and latest_runstep.status == "in_progress"
-                and latest_runstep.type == "tool_calls"
-                and latest_runstep.step_details.tool_calls[0].type
+                and self.runsteps.data[0].status == "in_progress"
+                and self.runsteps.data[0].type == "tool_calls"
+                and self.runsteps.data[0].step_details.tool_calls[0].type
                 == "function"
             ):
                 router_response = "tool_response"
