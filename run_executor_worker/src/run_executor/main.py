@@ -47,6 +47,9 @@ class ExecuteRun:
 
         try:
             self.run = updated_run
+            self.runsteps = assistants_client.beta.threads.runs.steps.list(
+                run_id=self.run_id, thread_id=self.thread_id, order="desc"
+            )
             print("\n\nExecuting run: ", self.run, "\n\n")
 
             # Get the thread messages
@@ -68,8 +71,22 @@ class ExecuteRun:
             )
             self.messages = messages
 
-            router_agent = router.RouterAgent(self)
-            router_response = router_agent.generate()
+            latest_runstep = self.runsteps.data[0]
+            if (
+                len(self.runsteps.data)
+                and latest_runstep.status == "in_progress"
+                and latest_runstep.type == "tool_calls"
+                and latest_runstep.step_details.tool_calls[0].type
+                == "function"
+            ):
+                router_response = "tool_response"
+            else:
+                router_agent = router.RouterAgent(self)  # semantic router
+                router_response = router_agent.generate()
+            if router_response == "tool_response":
+                print(
+                    "\n\nTRANSITIONING TO FUNCTION CALLING summarization\n\n"
+                )
             if router_response != PromptKeys.TRANSITION.value:
                 create_message_runstep(
                     self.thread_id,
