@@ -97,7 +97,12 @@ Determine if those tools are needed to respond to the user's message.""",  # noq
             )
 
             # parse the response to get the arguments
-            print("\n\nTool needed response:\n", tools_needed_response)
+            print(
+                "\n\nTool needed response:\n",
+                tools_needed_response.choices[0]
+                .message.tool_calls[0]
+                .function,
+            )
             tools_needed_args = json.loads(
                 tools_needed_response.choices[0]
                 .message.tool_calls[0]

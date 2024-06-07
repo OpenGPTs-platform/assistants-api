@@ -172,6 +172,7 @@ def create_function_runstep(
     assistant_id: str,
     function: Function,
 ) -> dict:
+    tool_call_id = "call_" + str(uuid.uuid4())[:-5]
     # Prepare run step details with the tool call
     run_step_details = {
         "assistant_id": assistant_id,
@@ -179,8 +180,7 @@ def create_function_runstep(
             "type": "tool_calls",
             "tool_calls": [
                 {
-                    "id": "call_"
-                    + str(uuid.uuid4()),  # This should be a unique identifier.
+                    "id": tool_call_id,  # This should be a unique identifier.
                     "function": function,
                     "type": "function",
                 }

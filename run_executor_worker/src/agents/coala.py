@@ -163,7 +163,7 @@ You must always begin with "{ReactStepType.THOUGHT.value}: " ."""  # noqa
                     'function': {
                         'name': 'determine_next_action',
                         'description': f"""The actions are available to you:```{actions_prompt}```
-Determine which action to perform next. You should only use an action once, do not repeat actions.""",  # noqa
+Determine which action to perform next. You should only use an action once, DO NOT repeat actions nor functions.""",  # noqa
                         'parameters': {
                             'type': 'object',
                             'properties': {
@@ -184,7 +184,10 @@ Determine which action to perform next. You should only use an action once, do n
                 "function": {"name": "determine_next_action"},
             },
         )
-        print("\n\nNext action response:\n", response)
+        print(
+            "\n\nNext action response:\n",
+            response.choices[0].message.tool_calls[0].function,
+        )
         response_args = json.loads(
             response.choices[0].message.tool_calls[0].function.arguments
         )
@@ -241,7 +244,7 @@ Determine which action to perform next. You should only use an action once, do n
     def generate_final_answer(self) -> ReactStep:
         coala_prompt = self.compose_coala_prompt()
         orchestrator_instruction = f"""Your role is to provide the user with a single comprehensive "Final Answer" to conclude the run.
-You must always begin with "Final Answer: " ."""  # noqa
+You must always begin with "{ReactStepType.FINAL_ANSWER.value}: " ."""  # noqa
         generator_messages = [
             {
                 "role": "user",
@@ -388,7 +391,9 @@ Final Answer: the final answer to the original input question"""
                 new_trace.append(
                     ReactStep(
                         step_type=ReactStepType.OBSERVATION,
-                        content=step.step_details.tool_calls[0].model_dump(),
+                        content=step.step_details.tool_calls[
+                            0
+                        ].model_dump_json(),
                     )
                 )
             if step.type == "message_creation":
@@ -457,7 +462,10 @@ Final Answer: the final answer to the original input question"""
             stripped_generation = generation.split(start_key, 1)[1].strip()
         except IndexError:
             raise ValueError(
-                "Generation did not follow ReAct format:\n" + generation
+                "Generation did not follow ReAct format:\n"
+                + generation
+                + "\n"
+                + start_key
             )
 
         for step_type in ReactStepType:

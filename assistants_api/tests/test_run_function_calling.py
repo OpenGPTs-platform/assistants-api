@@ -171,7 +171,7 @@ def test_execute_fc_run_to_tool_call(
     assert isinstance(latest_step.step_details, ToolCallsStepDetails)
 
 
-# @pytest.mark.dependency(depends=["test_execute_fc_run_to_tool_call"])
+@pytest.mark.dependency(depends=["test_execute_fc_run_to_tool_call"])
 def test_execute_fc_to_submit_tool_output(
     openai_client: OpenAI, assistant_id: str, thread_id: str
 ):
@@ -207,7 +207,7 @@ def test_execute_fc_to_submit_tool_output(
     assert tool_call_step.step_details.tool_calls[0].function.output == "57"
 
 
-@pytest.mark.dependency(depends=["test_execute_fc_to_submit_tool_output"])
+# @pytest.mark.dependency(depends=["test_execute_fc_to_submit_tool_output"])
 def test_execute_full_fc_run(
     openai_client: OpenAI, assistant_id: str, thread_id: str
 ):
@@ -238,120 +238,19 @@ def test_execute_full_fc_run(
     )
     assert len(run_steps.data) > 1
     message_step: RunStep = run_steps.data[0]
-    tool_call_step: RunStep = run_steps.data[1]
-    assert tool_call_step.status == "completed"
     assert isinstance(message_step.step_details, MessageCreationStepDetails)
+    message = openai_client.beta.threads.messages.retrieve(
+        thread_id=thread_id,
+        message_id=message_step.step_details.message_creation.message_id,
+    )
+    assert "57" in message.model_dump_json()
+
+    # find the first tool_call_step.step_details of type ToolCallsStepDetails
+    tool_call_step = None
+    for step in run_steps.data:
+        if step.type == "tool_calls":
+            tool_call_step = step
+            break
+    assert tool_call_step.status == "completed"
     assert isinstance(tool_call_step.step_details, ToolCallsStepDetails)
-
-
-# example run response
-#  {
-#   "id": "run_NVSMGgDKzgCgwEF7Zzdz8k6y",
-#   "assistant_id": "asst_E1kTZTy6CYfC6ORcNjzOiy7m",
-#   "cancelled_at": null,
-#   "completed_at": null,
-#   "created_at": 1717623841,
-#   "expires_at": 1717624441,
-#   "failed_at": null,
-#   "incomplete_details": null,
-#   "instructions": "You are a weather bot",
-#   "last_error": null,
-#   "max_completion_tokens": null,
-#   "max_prompt_tokens": null,
-#   "metadata": {},
-#   "model": "gpt-3.5-turbo",
-#   "object": "thread.run",
-#   "required_action": {
-#     "submit_tool_outputs": {
-#       "tool_calls": [
-#         {
-#           "id": "call_jQZJcllUJddBMgrVoG7vCz5T",
-#           "function": {
-#             "arguments": "{\"location\":\"San Francisco, CA\",\"unit\":\"Celsius\"}",
-#             "name": "get_current_temperature"
-#           },
-#           "type": "function"
-#         }
-#       ]
-#     },
-#     "type": "submit_tool_outputs"
-#   },
-#   "response_format": "auto",
-#   "started_at": 1717623841,
-#   "status": "requires_action",
-#   "thread_id": "thread_FpjpMLPArzthx9OJEVCVy6s0",
-#   "tool_choice": "auto",
-#   "tools": [
-#     {
-#       "function": {
-#         "name": "get_current_temperature",
-#         "description": "Get the current temperature for a specific location",
-#         "parameters": {
-#           "type": "object",
-#           "properties": {
-#             "location": {
-#               "type": "string",
-#               "description": "The city and state, e.g., San Francisco, CA"
-#             },
-#             "unit": {
-#               "type": "string",
-#               "enum": [
-#                 "Celsius",
-#                 "Fahrenheit"
-#               ],
-#               "description": "The temperature unit to use. Infer this from the user's location." # noqa
-#             }
-#           },
-#           "required": [
-#             "location",
-#             "unit"
-#           ]
-#         }
-#       },
-#       "type": "function"
-#     }
-#   ],
-#   "truncation_strategy": {
-#     "type": "auto",
-#     "last_messages": null
-#   },
-#   "usage": null,
-#   "temperature": 1.0,
-#   "top_p": 1.0,
-#   "tool_resources": {}
-# }
-
-
-# Example run step response
-# {
-#     "id": "step_I1VoVmk6xgaRRSmwUmK4jeqS",
-#     "assistant_id": "asst_n9OeD7LxXHOAqwntzE4GQA0q",
-#     "cancelled_at": null,
-#     "completed_at": null,
-#     "created_at": 1717650165,
-#     "expired_at": null,
-#     "failed_at": null,
-#     "last_error": null,
-#     "metadata": null,
-#     "object": "thread.run.step",
-#     "run_id": "run_r5BUD3mknzLHNjuKaHKiGI9r",
-#     "status": "in_progress",
-#     "step_details": {
-#     "tool_calls": [
-#         {
-#         "id": "call_9GzmopsuKPVfmHWGqNotTDu5",
-#         "function": {
-#             "arguments": "{\"location\":\"San Francisco\",\"unit\":\"Celsius\"}",
-#             "name": "get_current_temperature",
-#             "output": null
-#         },
-#         "type": "function"
-#         }
-#     ],
-#     "type": "tool_calls"
-#     },
-#     "thread_id": "thread_8vqZzH15vzPSI5dGKS1Nx28e",
-#     "type": "tool_calls",
-#     "usage": null,
-#     "expires_at": 1717650764
-# }
+    assert "57" in tool_call_step.step_details.model_dump_json()

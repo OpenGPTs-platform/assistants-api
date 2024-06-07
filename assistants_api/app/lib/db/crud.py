@@ -668,7 +668,6 @@ def submit_tool_outputs(
     run_id: str,
     tool_outputs: List[schemas.ToolOutput],
 ):
-    print("\n\n\nIn CRUD")
     run = (
         db.query(models.Run)
         .filter(models.Run.id == run_id, models.Run.thread_id == thread_id)

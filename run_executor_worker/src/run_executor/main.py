@@ -9,6 +9,7 @@ from openai.types.beta.thread import Thread
 from openai.types.beta import Assistant
 from openai.pagination import SyncCursorPage
 from agents import router, coala
+from actions import function_calling_tool
 import json
 import datetime
 
@@ -73,7 +74,7 @@ class ExecuteRun:
 
             if (
                 len(self.runsteps.data)
-                and self.runsteps.data[0].status == "in_progress"
+                and self.runsteps.data[0].status == "completed"
                 and self.runsteps.data[0].type == "tool_calls"
                 and self.runsteps.data[0].step_details.tool_calls[0].type
                 == "function"
@@ -82,11 +83,11 @@ class ExecuteRun:
             else:
                 router_agent = router.RouterAgent(self)  # semantic router
                 router_response = router_agent.generate()
-            if router_response == "tool_response":
-                print(
-                    "\n\nTRANSITIONING TO FUNCTION CALLING summarization\n\n"
-                )
-            if router_response != PromptKeys.TRANSITION.value:
+
+            if (
+                router_response != PromptKeys.TRANSITION.value
+                and router_response != "tool_response"
+            ):
                 create_message_runstep(
                     self.thread_id,
                     self.run_id,
@@ -117,7 +118,11 @@ class ExecuteRun:
             self.runsteps = coala_class.retrieve_runsteps()
             coala_class.set_assistant_tools()
 
-            coala_class.generate_question()
+            if router_response == PromptKeys.TRANSITION.value:
+                coala_class.generate_question()
+
+            if router_response == "tool_response":
+                coala_class.load_trace()
 
             max_steps = 8
             curr_step = 0
@@ -127,9 +132,21 @@ class ExecuteRun:
                 coala_class.react_steps[-1].step_type
                 != coala.ReactStepType.FINAL_ANSWER
             ):
+                if router_response == "tool_response":
+                    router_response = PromptKeys.TRANSITION.value
+                    fc_tool = function_calling_tool.FunctionCallingTool(
+                        coala_class
+                    )
+                    fc_tool.generate_tool_summary(self.runsteps.data[-1])
+                    continue
+
                 self.messages = coala_class.retrieve_messages()
                 self.runsteps = coala_class.retrieve_runsteps()
-                coala_class.generate_thought()
+                if (
+                    coala_class.react_steps[-1].step_type
+                    != coala.ReactStepType.THOUGHT
+                ):
+                    coala_class.generate_thought()
                 coala_class.generate_action()
                 current_action = Actions(coala_class.react_steps[-1].content)
                 coala_class.execute_action(current_action)
