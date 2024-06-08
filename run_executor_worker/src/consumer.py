@@ -6,9 +6,9 @@ from run_executor.main import ExecuteRun
 import json
 import time
 
-
 load_dotenv()
 
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", 4))
 RABBITMQ_DEFAULT_USER = os.getenv("RABBITMQ_DEFAULT_USER")
 RABBITMQ_DEFAULT_PASS = os.getenv("RABBITMQ_DEFAULT_PASS")
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
@@ -16,11 +16,9 @@ RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 
 
 class RabbitMQConsumer:
-    def __init__(self, max_workers=5):
+    def __init__(self, max_workers=4):
         self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
-        self.connection = None
-        self.channel = None
         self.connect()
 
     def connect(self):
@@ -38,27 +36,24 @@ class RabbitMQConsumer:
                     )
                 )
                 self.channel = self.connection.channel()
-                self.channel.basic_qos(prefetch_count=1)
+                self.channel.basic_qos(prefetch_count=self.max_workers)
                 break
             except pika.exceptions.AMQPConnectionError as e:
                 print(f"Connection error: {e}, retrying in 5 seconds...")
                 time.sleep(5)
 
     def process_message(self, body):
-        message = body.decode("utf-8")
-        data = json.loads(message)
-
-        print(f"Processing {data}")
-        run = ExecuteRun(data["thread_id"], data["run_id"])
-        run.execute()
+        try:
+            message = body.decode("utf-8")
+            data = json.loads(message)
+            print(f"\n\nProcessing {data}")
+            run = ExecuteRun(data["thread_id"], data["run_id"])
+            run.execute()
+        except json.JSONDecodeError as e:
+            print(f"Failed to decode JSON: {e}")
 
     def callback(self, ch, method, properties, body):
-        try:
-            self.executor.submit(
-                self.process_message_and_ack, body, ch, method
-            )
-        except Exception as e:
-            print(f"Failed to submit the task to the executor: {e}")
+        self.executor.submit(self.process_message_and_ack, body, ch, method)
 
     def process_message_and_ack(self, body, ch, method):
         try:
@@ -86,9 +81,10 @@ class RabbitMQConsumer:
                 print("Stream lost, reconnecting...")
                 self.connect()
             except Exception as e:
-                print(f"An error occurred: {e}, reconnecting...")
+                print(f"Exception in consuming: {e}")
                 self.connect()
 
 
-consumer = RabbitMQConsumer()
-consumer.start_consuming("runs_queue")
+if __name__ == "__main__":
+    consumer = RabbitMQConsumer(max_workers=MAX_WORKERS)
+    consumer.start_consuming("runs_queue")

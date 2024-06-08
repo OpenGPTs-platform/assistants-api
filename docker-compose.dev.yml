@@ -102,6 +102,7 @@ services:
       - rabbitmq
       - weaviate
     environment:
+      MAX_WORKERS: 12
       RABBITMQ_DEFAULT_USER: $RABBITMQ_DEFAULT_USER
       RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
       RABBITMQ_HOST: rabbitmq
