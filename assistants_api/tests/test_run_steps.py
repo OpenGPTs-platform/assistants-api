@@ -209,7 +209,7 @@ def test_file_search_run_executor(openai_client: OpenAI, assistant_id: str):
 @pytest.mark.skipif(
     use_openai, reason="OpenAI API does not support web retrieval"
 )
-@pytest.mark.dependency(depends=["test_no_tool_run_execution"])
+# @pytest.mark.dependency(depends=["test_no_tool_run_execution"])
 def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
     file = openai_client.files.create(
         file=open(code_reference_file_path, "rb"), purpose='assistants'
@@ -235,7 +235,7 @@ def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
             },
             {
                 "role": "user",
-                "content": "What scholarships can I obtain if I transfer from an in-state college to UF",  # noqa
+                "content": "What scholarships can I obtain if I transfer from an in-state college to University of Florida. Use web_retrieval right away ONLY ONCE and then reguardless of the output complete the run.",  # noqa
             },
         ],
     )
@@ -279,3 +279,5 @@ def test_web_retrieval_run_executor(openai_client: OpenAI, assistant_id: str):
         )
         for step in steps_response.data
     )
+
+    # TODO: Test for actual content

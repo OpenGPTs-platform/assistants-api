@@ -1,33 +1,48 @@
+from typing import List
 from utils.ops_api_handler import create_web_retrieval_runstep
 from utils.openai_clients import litellm_client
 from data_models import run
 import os
-import requests
-import urllib.parse
 from agents import coala
+from pydantic import BaseModel
+from utils.weaviate_utils import weaviate_client
+
+
+class WebRetrievalResult(BaseModel):
+    url: str
+    content: str
+    depth: int
 
 
 class WebRetrieval:
     def __init__(
         self,
         coala_class: "coala.CoALA",
-        amt_documents: int = 1,
+        amt_documents: int = 2,
     ):
         self.coala_class = coala_class
         self.amt_documents = amt_documents
 
-    def query_rag(self, topic, query):
-        url = f"http://api.rag.pro/getModel/{topic}/{urllib.parse.quote(query)}?top_k={self.amt_documents}"  # noqa
-        response = requests.get(url)
-
-        if response.status_code == 200:
-            return response.json()
+    def query(self, query: str, site: str = None) -> List[WebRetrievalResult]:
+        collection_name = "web_retrieval"
+        if weaviate_client.collections.exists(name=collection_name):
+            collection = weaviate_client.collections.get(name=collection_name)
         else:
-            raise Exception(
-                "API request failed with status code: {}".format(
-                    response.status_code
-                )
+            raise Exception(f"Collection {collection_name} does not exist.")
+
+        query_result = collection.query.near_text(
+            query=query,
+            limit=self.amt_documents,
+        )
+
+        return [
+            WebRetrievalResult(
+                url=chunk.properties["url"],
+                content=chunk.properties["content"],
+                depth=chunk.properties["depth"],
             )
+            for chunk in query_result.objects
+        ]
 
     def generate(
         self,
@@ -54,14 +69,14 @@ Only respond with the query iteself NOTHING ELSE.
         query = response.choices[0].message.content
 
         # Retrieve documents based on the query
-        retrieved_content = self.query_rag("UFL", query)
+        retrieved_items: List[WebRetrievalResult] = self.query(query)
 
         run_step = create_web_retrieval_runstep(
             self.coala_class.thread_id,
             self.coala_class.run_id,
             self.coala_class.assistant_id,
-            retrieved_content,
-            site="UFL",
+            [item.content for item in retrieved_items],
+            site=", ".join([item.url for item in retrieved_items]),
         )
         return run_step
 
