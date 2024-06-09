@@ -205,3 +205,13 @@ class CreateVectorStoreFileBatchRequest(BaseModel):
 class SubmitToolOutputsRunRequest(BaseModel):
     tool_outputs: List[ToolOutput]
     stream: Optional[bool] = None
+
+
+class WebRetrievalResponse(BaseModel):
+    message: str
+    links_upserted: list[str]
+
+
+class WebRetrievalCreate(BaseModel):
+    root_urls: List[str]
+    max_depth: int

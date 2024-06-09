@@ -8,7 +8,11 @@ from routers import (
     runsteps_router,
     vectorstore_router,
 )
-from routers.ops import run_ops_router, runsteps_ops_router
+from routers.ops import (
+    run_ops_router,
+    runsteps_ops_router,
+    web_retrieval_ops_router,
+)
 from lib.db.database import engine
 from lib.db import models
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,3 +61,4 @@ app.include_router(vectorstore_router.router)
 # ops routers
 app.include_router(run_ops_router.router)
 app.include_router(runsteps_ops_router.router)
+app.include_router(web_retrieval_ops_router.router)
