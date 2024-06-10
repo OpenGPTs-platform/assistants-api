@@ -7,6 +7,8 @@ from openai.types.beta.code_interpreter_tool import CodeInterpreterTool
 from openai.types.beta.function_tool import FunctionTool
 from pydantic import BaseModel
 
+from utils.weaviate_utils import get_web_retrieval_description
+
 
 class Actions(Enum):
     # function, retrieval, code_interpreter, text_generation, completion
@@ -20,6 +22,8 @@ class Actions(Enum):
 
 
 Actions["FAILURE"]
+
+WEB_RETRIEVAL_DESCRIPTION = get_web_retrieval_description()
 
 
 class ActionItem(BaseModel):
@@ -68,7 +72,7 @@ def tools_to_map(tools: List[AssistantTool]) -> dict[str, ActionItem]:
         elif isinstance(tool, WebRetrievalTool):
             tools_map[tool.type] = ActionItem(
                 type=tool.type,
-                description="Retrieves information related to University of Florida (UF).",  # noqa
+                description=WEB_RETRIEVAL_DESCRIPTION,
             )
         elif isinstance(tool, CodeInterpreterTool):
             tools_map[tool.type] = ActionItem(

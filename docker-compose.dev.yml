@@ -39,7 +39,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   weaviate:
-    image: cr.weaviate.io/semitechnologies/weaviate:1.25.1
+    image: cr.weaviate.io/semitechnologies/weaviate:1.24.17
     ports:
       - "8080:8080"
       - "50051:50051"

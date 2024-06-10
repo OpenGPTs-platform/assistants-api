@@ -4,14 +4,8 @@ from utils.openai_clients import litellm_client
 from data_models import run
 import os
 from agents import coala
-from pydantic import BaseModel
 from utils.weaviate_utils import weaviate_client
-
-
-class WebRetrievalResult(BaseModel):
-    url: str
-    content: str
-    depth: int
+from constants import WebRetrievalResult
 
 
 class WebRetrieval:
@@ -67,15 +61,21 @@ Only respond with the query iteself NOTHING ELSE.
             max_tokens=200,
         )
         query = response.choices[0].message.content
+        print(f"\n\n\nQuery generated: {query}")
 
         # Retrieve documents based on the query
-        retrieved_items: List[WebRetrievalResult] = self.query(query)
+        try:
+            retrieved_items: List[WebRetrievalResult] = self.query(query)
+        except Exception as e:
+            raise Exception(
+                f"Error: web_retrieval is not instantiated yet.\n{e}"
+            )
 
         run_step = create_web_retrieval_runstep(
             self.coala_class.thread_id,
             self.coala_class.run_id,
             self.coala_class.assistant_id,
-            [item.content for item in retrieved_items],
+            retrieved_items,
             site=", ".join([item.url for item in retrieved_items]),
         )
         return run_step

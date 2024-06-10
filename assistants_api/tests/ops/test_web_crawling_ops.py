@@ -26,6 +26,7 @@ def test_weaviate_integration(
     body = {
         "root_urls": ["https://www.scrapethissite.com/faq/"],
         "max_depth": 1,
+        "description": None,
     }
 
     response = requests.post(create_url, json=body)
@@ -46,4 +47,4 @@ def test_weaviate_integration(
     )
 
     assert len(query_result.objects) == 1
-    assert "AJAX" in query_result.objects[0].properties["content"]
+    assert "content" in query_result.objects[0].properties

@@ -11,29 +11,10 @@ from lib.db import schemas
 
 router = APIRouter()
 
-collection_name = "web_retrieval"
-if client.collections.exists(name=collection_name):
-    collection = client.collections.get(name=collection_name)
-else:
-    collection = client.collections.create(
-        name=collection_name,
-        vectorizer_config=weaviate.classes.config.Configure.Vectorizer.text2vec_openai(),  # noqa
-        generative_config=weaviate.classes.config.Configure.Generative.openai(),
-        properties=[
-            weaviate.classes.config.Property(
-                name="url", data_type=weaviate.classes.config.DataType.TEXT
-            ),
-            weaviate.classes.config.Property(
-                name="content", data_type=weaviate.classes.config.DataType.TEXT
-            ),
-            weaviate.classes.config.Property(
-                name="depth", data_type=weaviate.classes.config.DataType.NUMBER
-            ),
-        ],
-    )
 
-
-async def success_callback(crawl_info: CrawlInfo):
+async def success_callback(
+    crawl_info: CrawlInfo, collection: weaviate.collections.Collection
+):
     print(f"Callback for URL: {crawl_info.url}\n")
     try:
         collection.data.delete_many(
@@ -57,10 +38,43 @@ async def start_crawl(
         ..., title="Root URLs and max depth"
     ),
 ):
+    collection_name = "web_retrieval"
+
+    if client.collections.exists(name=collection_name):
+        collection = client.collections.get(name=collection_name)
+        if data.description:
+            collection.config.update(description=data.description)
+    else:
+        data.description = "Web Retrieval contains information scraped from specific website domains. Use this when precise information in a website may need to be retrieved."  # noqa
+        print(
+            f"\n\nWARNING: WEB_RETRIEVAL_DESCRIPTION is not set. Defaulting to \"{data.description}\""  # noqa
+        )  # noqa
+        collection = client.collections.create(
+            name=collection_name,
+            description=data.description,
+            vectorizer_config=weaviate.classes.config.Configure.Vectorizer.text2vec_openai(),  # noqa
+            generative_config=weaviate.classes.config.Configure.Generative.openai(),
+            properties=[
+                weaviate.classes.config.Property(
+                    name="url", data_type=weaviate.classes.config.DataType.TEXT
+                ),
+                weaviate.classes.config.Property(
+                    name="content",
+                    data_type=weaviate.classes.config.DataType.TEXT,
+                ),
+                weaviate.classes.config.Property(
+                    name="depth",
+                    data_type=weaviate.classes.config.DataType.NUMBER,
+                ),
+            ],
+        )
+
     print("Starting web retrieval...")
     try:
         result = await crawl_websites(
-            data.root_urls, data.max_depth, success_callback
+            data.root_urls,
+            data.max_depth,
+            lambda x: success_callback(x, collection),
         )
         links_upserted = [info.url for info in result]
         print(f"Links upserted count: {len(links_upserted)}")

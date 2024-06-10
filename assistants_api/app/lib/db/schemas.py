@@ -215,3 +215,4 @@ class WebRetrievalResponse(BaseModel):
 class WebRetrievalCreate(BaseModel):
     root_urls: List[str]
     max_depth: int
+    description: Optional[str] = None

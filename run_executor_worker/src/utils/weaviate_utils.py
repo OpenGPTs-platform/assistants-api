@@ -49,3 +49,9 @@ def retrieve_file_chunks(vector_store_ids: List[str], query: str) -> List[str]:
         )
 
     return chunks
+
+
+def get_web_retrieval_description() -> str:
+    collection = weaviate_client.collections.get(name="web_retrieval")
+    config = collection.config.get()
+    return config.description
