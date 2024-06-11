@@ -221,5 +221,6 @@ class WebRetrievalResponse(BaseModel):
 
 class WebRetrievalCreate(BaseModel):
     root_urls: List[str]
+    constrain_to_root_domain: bool = True
     max_depth: int
     description: Optional[str] = None

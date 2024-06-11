@@ -25,7 +25,8 @@ def test_weaviate_integration(
 ):
     create_url = "http://localhost:8000/ops/web_retrieval"
     body = {
-        "root_urls": ["https://www.scrapethissite.com/faq/"],
+        "root_urls": ["https://quotes.toscrape.com/"],
+        "constrain_to_root_domain": True,
         "max_depth": 1,
         "description": None,
     }
@@ -36,14 +37,14 @@ def test_weaviate_integration(
     assert "message" in data
     assert "Crawling completed successfully." == data["message"]
     assert "crawl_infos" in data
-    assert len(data["crawl_infos"]) == 6
+    assert len(data["crawl_infos"]) == 47
     # for all crawl_infos, check if the content is removed
     err_count = 0
     for crawl_info in data["crawl_infos"]:
         assert "<REMOVED>" == crawl_info["content"]
         if crawl_info["error"]:
             err_count += 1
-    assert err_count <= 1
+    assert err_count <= 8
     # Check collection existence
     collection_name = "web_retrieval"
     assert weaviate_client.collections.exists(name=collection_name) is True

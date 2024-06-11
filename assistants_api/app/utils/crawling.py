@@ -50,7 +50,14 @@ async def fetch_pdf_content(pdf_bytes):
 
 
 async def process_url(
-    client, url, current_depth, root_url, visited, max_depth, success_callback
+    client,
+    url,
+    current_depth,
+    root_url,
+    visited,
+    max_depth,
+    constrain_to_root_domain,
+    success_callback,
 ):
     if url in visited or (max_depth is not None and current_depth > max_depth):
         return None, None, None
@@ -75,11 +82,14 @@ async def process_url(
             urljoin(url, a_tag["href"])
             for a_tag in soup.find_all("a", href=True)
         ]
-        valid_links = [
-            link
-            for link in links
-            if urlparse(link).netloc == urlparse(root_url).netloc
-        ]
+        if constrain_to_root_domain:
+            valid_links = [
+                link
+                for link in links
+                if urlparse(link).netloc == urlparse(root_url).netloc
+            ]
+        else:
+            valid_links = links
         print(f"\nFound {len(valid_links)} valid links on {url}")
         return crawl_info, root_url, valid_links
     else:
@@ -87,7 +97,10 @@ async def process_url(
 
 
 async def crawl_websites(
-    root_urls, max_depth=None, success_callback=None
+    root_urls,
+    constrain_to_root_domain,
+    max_depth=None,
+    success_callback=None,
 ) -> list[CrawlInfo]:
     visited = set()
     queue = [(url, url, 0) for url in root_urls]  # (url, root_url, depth)
@@ -104,6 +117,7 @@ async def crawl_websites(
                     root_url,
                     visited,
                     max_depth,
+                    constrain_to_root_domain,
                     success_callback,
                 )
                 for url, root_url, depth in queue

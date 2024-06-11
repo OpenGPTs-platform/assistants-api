@@ -77,6 +77,7 @@ async def start_crawl(
     try:
         crawl_infos = await crawl_websites(
             data.root_urls,
+            data.constrain_to_root_domain,
             data.max_depth,
             lambda x: success_callback(x, collection),
         )
