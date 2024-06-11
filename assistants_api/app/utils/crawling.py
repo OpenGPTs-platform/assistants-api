@@ -142,7 +142,7 @@ def content_preprocess(crawl_info: CrawlInfo):
             is_separator_regex=False,
         )
 
-        documents = text_splitter.create_documents(crawl_info.content)
+        documents = text_splitter.create_documents([crawl_info.content])
 
     else:  # if is HTML content
         headers_to_split_on = [("h1", "Header 1"), ("h2", "Header 2")]
