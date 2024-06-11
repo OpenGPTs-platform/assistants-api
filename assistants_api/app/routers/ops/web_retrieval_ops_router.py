@@ -10,6 +10,8 @@ from lib.db import schemas
 
 router = APIRouter()
 
+COLLECTION_NAME = "web_retrieval"
+
 
 async def success_callback(
     crawl_info: schemas.CrawlInfo, collection: weaviate.collections.Collection
@@ -37,10 +39,8 @@ async def start_crawl(
         ..., title="Root URLs and max depth"
     ),
 ):
-    collection_name = "web_retrieval"
-
-    if client.collections.exists(name=collection_name):
-        collection = client.collections.get(name=collection_name)
+    if client.collections.exists(name=COLLECTION_NAME):
+        collection = client.collections.get(name=COLLECTION_NAME)
         if data.description:
             collection.config.update(description=data.description)
     else:
@@ -49,7 +49,7 @@ async def start_crawl(
             f"\n\nWARNING: WEB_RETRIEVAL_DESCRIPTION is not set. Defaulting to \"{data.description}\""  # noqa
         )  # noqa
         collection = client.collections.create(
-            name=collection_name,
+            name=COLLECTION_NAME,
             description=data.description,
             generative_config=weaviate.classes.config.Configure.Generative.openai(),
             properties=[
@@ -92,5 +92,22 @@ async def start_crawl(
             message="Crawling completed successfully.",
             crawl_infos=crawl_infos,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/ops/web_retrieval", status_code=204)
+async def delete_collection():
+    try:
+        if client.collections.exists(name=COLLECTION_NAME):
+            client.collections.delete(name=COLLECTION_NAME)
+            return {
+                "message": f"Collection '{COLLECTION_NAME}' deleted successfully."
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{COLLECTION_NAME}' not found.",
+            )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

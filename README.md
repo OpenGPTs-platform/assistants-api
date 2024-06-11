@@ -14,7 +14,7 @@ Architecture
 ### Quickstart
 0. Clone the repo `git clone https://github.com/OpenGPTs-platform/assistants-api.git` and navigate into `assistants-api`directory
 1. Create a copy of [`.env.example`](./.env.example) and name it `.env`. Fill in necessary values.
-2. Execute [`,/rundev`](./rundev)
+2. Start docker-compose `docker-compose -f .\docker-compose.dev.yml up`
 3. Its running 🥳!
 4. In a new directory and environment, install the `openai` client fork with `pip install IPython git+https://github.com/OpenGPTs-platform/openai-python.git`, and try it with the following demo (NOTE: update `YOUR_FILE_PATH` with your file path that you want to test retrieval with). Also it may now
 ```py

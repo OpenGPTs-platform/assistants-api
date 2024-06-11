@@ -19,6 +19,7 @@ def weaviate_client():
     )
 
 
+@pytest.mark.dependency()
 def test_weaviate_integration(
     weaviate_client: weaviate.client.WeaviateClient,
 ):
@@ -34,8 +35,15 @@ def test_weaviate_integration(
     data = response.json()
     assert "message" in data
     assert "Crawling completed successfully." == data["message"]
-    assert "links_upserted" in data
-    assert len(data["links_upserted"]) == 6
+    assert "crawl_infos" in data
+    assert len(data["crawl_infos"]) == 6
+    # for all crawl_infos, check if the content is removed
+    err_count = 0
+    for crawl_info in data["crawl_infos"]:
+        assert "<REMOVED>" == crawl_info["content"]
+        if crawl_info["error"]:
+            err_count += 1
+    assert err_count <= 1
     # Check collection existence
     collection_name = "web_retrieval"
     assert weaviate_client.collections.exists(name=collection_name) is True
@@ -48,3 +56,20 @@ def test_weaviate_integration(
 
     assert len(query_result.objects) == 1
     assert "content" in query_result.objects[0].properties
+
+
+@pytest.mark.dependency(depends=["test_weaviate_integration"])
+# @pytest.mark.skip(reason="This test is skipped unless explicitly run.")
+def test_delete_collection(weaviate_client: weaviate.client.WeaviateClient):
+    # Perform tasks that depend on the success of `test_weaviate_integration`
+    collection_name = "web_retrieval"
+
+    if weaviate_client.collections.exists(name=collection_name):
+        weaviate_client.collections.delete(name=collection_name)
+        assert (
+            weaviate_client.collections.exists(name=collection_name) is False
+        )
+    else:
+        pytest.skip(
+            f"Collection '{collection_name}' does not exist, skipping the test."
+        )
