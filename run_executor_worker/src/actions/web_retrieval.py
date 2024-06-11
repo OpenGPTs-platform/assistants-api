@@ -76,6 +76,7 @@ Only respond with the query iteself NOTHING ELSE.
             self.coala_class.thread_id,
             self.coala_class.run_id,
             self.coala_class.assistant_id,
+            query,
             retrieved_items,
             site=", ".join([item.url for item in retrieved_items]),
         )
