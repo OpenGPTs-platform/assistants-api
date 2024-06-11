@@ -3,19 +3,12 @@ import httpx
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import asyncio
-from pydantic import BaseModel
 import fitz  # PyMuPDF
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     HTMLHeaderTextSplitter,
 )
-
-
-class CrawlInfo(BaseModel):
-    url: str
-    error: str = None
-    content: str
-    depth: int
+from lib.db.schemas import CrawlInfo
 
 
 async def fetch_url(client, url, current_depth, retries=1, timeout=10.0):
@@ -93,7 +86,9 @@ async def process_url(
         return crawl_info, root_url, []
 
 
-async def crawl_websites(root_urls, max_depth=None, success_callback=None):
+async def crawl_websites(
+    root_urls, max_depth=None, success_callback=None
+) -> list[CrawlInfo]:
     visited = set()
     queue = [(url, url, 0) for url in root_urls]  # (url, root_url, depth)
     all_data = []
@@ -131,7 +126,7 @@ async def crawl_websites(root_urls, max_depth=None, success_callback=None):
 
 # Placeholder function for preprocessing content
 def content_preprocess(crawl_info: CrawlInfo):
-    chunk_size = 1000
+    chunk_size = 2000
     chunk_overlap = 200
     documents = []
     if crawl_info.url.endswith(".pdf"):

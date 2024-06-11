@@ -24,9 +24,10 @@ class WebRetrieval:
         else:
             raise Exception(f"Collection {collection_name} does not exist.")
 
-        query_result = collection.query.near_text(
+        query_result = collection.query.hybrid(
             query=query,
             limit=self.amt_documents,
+            target_vector="content_and_url",
         )
 
         return [

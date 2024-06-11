@@ -207,9 +207,16 @@ class SubmitToolOutputsRunRequest(BaseModel):
     stream: Optional[bool] = None
 
 
+class CrawlInfo(BaseModel):
+    url: str
+    error: str = None
+    content: str
+    depth: int
+
+
 class WebRetrievalResponse(BaseModel):
     message: str
-    links_upserted: list[str]
+    crawl_infos: list[CrawlInfo]
 
 
 class WebRetrievalCreate(BaseModel):

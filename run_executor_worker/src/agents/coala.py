@@ -66,22 +66,29 @@ class CoALA:
         self.react_steps: List[ReactStep] = []
 
     def generate_question(self) -> ReactStep:
-        coala_prompt = self.compose_coala_prompt()
-        tools_list_prompt = "[" + ", ".join(list(self.tool_items.keys())) + "]"
-        orchestrator_instruction = f"""Summarize the objective of the latest message using any conversation context as needed.
-Ensure that the summary includes all relevant details needed for effective use of the following tools: {tools_list_prompt}.
-You must always begin with "{ReactStepType.QUESTION.value}: " ."""  # noqa
+        tools_prompt = "\n".join(
+            f"- {tool.type} ({tool.description})"
+            for _, tool in self.tool_items.items()
+        )
+        orchestrator_instruction = f"""Summarize the conversation thread so far with emphasis on the latest message.
+This summary will be used to resolve the users message.
+Ensure that the summary includes all relevant details needed that may be needed.
+Tools available to you are:
+{tools_prompt}
+"""  # noqa
 
         # message history (episodic memory)
         generator_messages = [
             {"role": message.role, "content": message.content[0].text.value}
-            for message in self.messages.data
+            for message in self.messages.data[:-1]  # exclude last message
         ]
         # final instruction to generate question
+        latest_message = self.messages.data[-1]
         generator_messages.append(
             {
-                "role": "user",
-                "content": orchestrator_instruction + coala_prompt,
+                "role": latest_message.role,
+                "content": f"""CURRENT SYSTEM INSTRUCTION: ```{orchestrator_instruction}```
+{latest_message.content[0].text.value}""",  # noqa
             }
         )
         response = litellm_client.chat.completions.create(
@@ -90,14 +97,16 @@ You must always begin with "{ReactStepType.QUESTION.value}: " ."""  # noqa
             max_tokens=500,
         )
         content = response.choices[0].message.content
-        stripped_content = self.strip_generated_react_step(
-            content,
-            ReactStepType.QUESTION.value + ":",
-            ReactStepType.THOUGHT.value,
-        )
+        # stripped_content = self.strip_generated_react_step(
+        #     content,
+        #     ReactStepType.QUESTION.value + ":",
+        #     ReactStepType.THOUGHT.value,
+        # )
 
         react_step = ReactStep(
-            step_type=ReactStepType.QUESTION, content=stripped_content
+            step_type=ReactStepType.QUESTION,
+            content=f"""{content}
+USER'S LATEST MESSAGE:```{latest_message.content[0].text.value}```""",
         )
         self.react_steps.append(react_step)
 

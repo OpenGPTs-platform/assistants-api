@@ -1,7 +1,6 @@
 # ops/web_retrieval.py
 from fastapi import APIRouter, Body, HTTPException
 from utils.crawling import (
-    CrawlInfo,
     crawl_websites,
     content_preprocess,
 )
@@ -13,7 +12,7 @@ router = APIRouter()
 
 
 async def success_callback(
-    crawl_info: CrawlInfo, collection: weaviate.collections.Collection
+    crawl_info: schemas.CrawlInfo, collection: weaviate.collections.Collection
 ):
     print(f"Callback for URL: {crawl_info.url}\n")
     try:
@@ -52,7 +51,6 @@ async def start_crawl(
         collection = client.collections.create(
             name=collection_name,
             description=data.description,
-            vectorizer_config=weaviate.classes.config.Configure.Vectorizer.text2vec_openai(),  # noqa
             generative_config=weaviate.classes.config.Configure.Generative.openai(),
             properties=[
                 weaviate.classes.config.Property(
@@ -67,20 +65,32 @@ async def start_crawl(
                     data_type=weaviate.classes.config.DataType.NUMBER,
                 ),
             ],
+            vectorizer_config=[
+                weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
+                    name="content_and_url",
+                    source_properties=["content", "url"],
+                )
+            ],  # noqa
         )
 
     print("Starting web retrieval...")
     try:
-        result = await crawl_websites(
+        crawl_infos = await crawl_websites(
             data.root_urls,
             data.max_depth,
             lambda x: success_callback(x, collection),
         )
-        links_upserted = [info.url for info in result]
-        print(f"Links upserted count: {len(links_upserted)}")
+
+        print(f"\n\nTotal crawls: {len(crawl_infos)}")
+        no_error_craws = [c for c in crawl_infos if c.error is None]
+        print(f"Successful crawls count: {len(no_error_craws)}")
+
+        # clear content from crawl_infos
+        for crawl_info in crawl_infos:
+            crawl_info.content = "<REMOVED>"
         return schemas.WebRetrievalResponse(
             message="Crawling completed successfully.",
-            links_upserted=links_upserted,
+            crawl_infos=crawl_infos,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
