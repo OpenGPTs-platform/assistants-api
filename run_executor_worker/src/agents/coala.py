@@ -17,6 +17,7 @@ from data_models import run
 import os
 from openai.types.beta import Assistant
 import json
+from run_executor import main
 
 
 class ReactStepType(str, Enum):
@@ -38,6 +39,7 @@ class CoALA:
         run_id: str,
         thread_id: str,
         assistant_id: str,
+        run_executor: "main.ExecuteRun",
         verbose: bool = True,
     ):
         self.verbose = verbose
@@ -64,6 +66,7 @@ class CoALA:
         )
 
         self.react_steps: List[ReactStep] = []
+        self.run_executor = run_executor
 
     def generate_question(self) -> ReactStep:
         tools_prompt = "\n".join(
@@ -455,7 +458,10 @@ Final Answer: the final answer to the original input question"""
 
     def set_assistant_tools(self) -> None:
         self.tool_items = {
-            **tools_to_map(self.assistant.tools),
+            **tools_to_map(
+                self.assistant.tools,
+                self.run_executor.web_retrieval_description,
+            ),
             **actions_to_map(
                 [
                     Actions.COMPLETION.value,

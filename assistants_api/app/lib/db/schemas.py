@@ -36,6 +36,12 @@ from openai.types.beta.assistant_tool_choice_option_param import (
 from openai.types.beta.assistant_response_format_option_param import (
     AssistantResponseFormatOptionParam,
 )
+from openai.resources.ops.web_retireval import (
+    CrawlInfo,
+    WebRetrieval,
+    WebRetrievalResponse,
+    DeleteResponse,
+)
 
 
 Assistant
@@ -53,6 +59,10 @@ VectorStoreFileBatch
 TextContentBlock
 Text
 ToolOutput
+CrawlInfo,
+WebRetrieval,
+WebRetrievalResponse,
+DeleteResponse,
 
 StepDetails = Union[MessageCreationStepDetails, ToolCallsStepDetails]
 
@@ -207,20 +217,8 @@ class SubmitToolOutputsRunRequest(BaseModel):
     stream: Optional[bool] = None
 
 
-class CrawlInfo(BaseModel):
-    url: str
-    error: str = None
-    content: str
-    depth: int
-
-
-class WebRetrievalResponse(BaseModel):
-    message: str
-    crawl_infos: list[CrawlInfo]
-
-
 class WebRetrievalCreate(BaseModel):
     root_urls: List[str]
-    constrain_to_root_domain: bool = True
+    constrain_to_root_domain: bool
     max_depth: int
     description: Optional[str] = None

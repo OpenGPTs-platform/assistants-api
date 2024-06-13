@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional
 from constants import PromptKeys
+from utils.weaviate_utils import get_web_retrieval_description
 from utils.tools import ActionItem, Actions, tools_to_map
 from utils.ops_api_handler import create_message_runstep, update_run
 from data_models import run
@@ -31,6 +32,7 @@ class ExecuteRun:
         self.assistant: Optional[Assistant] = None
         self.tools_map: Optional[dict[str, ActionItem]] = None
         self.runsteps: Optional[SyncCursorPage[run.RunStep]] = None
+        self.web_retrieval_description: Optional[str] = None
         # TODO: add assistant and base tools off of assistant
 
     def execute(self):
@@ -65,7 +67,11 @@ class ExecuteRun:
             )
             self.assistant_id = assistant.id
             self.assistant = assistant
-            self.tools_map = tools_to_map(self.assistant.tools)
+
+            self.web_retrieval_description = get_web_retrieval_description()
+            self.tools_map = tools_to_map(
+                self.assistant.tools, self.web_retrieval_description
+            )
 
             messages = assistants_client.beta.threads.messages.list(
                 thread_id=self.thread_id, order="asc"
@@ -110,7 +116,7 @@ class ExecuteRun:
             print("\n\nTRANSITIONING TO COALA\n\n")
 
             coala_class = coala.CoALA(
-                self.run_id, self.thread_id, self.assistant_id
+                self.run_id, self.thread_id, self.assistant_id, self
             )
             self.run = coala_class.retrieve_run()
             self.assistant = coala_class.retrieve_assistant()

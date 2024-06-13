@@ -7,8 +7,6 @@ from openai.types.beta.code_interpreter_tool import CodeInterpreterTool
 from openai.types.beta.function_tool import FunctionTool
 from pydantic import BaseModel
 
-from utils.weaviate_utils import get_web_retrieval_description
-
 
 class Actions(Enum):
     # function, retrieval, code_interpreter, text_generation, completion
@@ -19,11 +17,6 @@ class Actions(Enum):
     TEXT_GENERATION = "text_generation"
     COMPLETION = "completion"
     FAILURE = "failure"
-
-
-Actions["FAILURE"]
-
-WEB_RETRIEVAL_DESCRIPTION = get_web_retrieval_description()
 
 
 class ActionItem(BaseModel):
@@ -50,7 +43,9 @@ def actions_to_map(actions: List[str]) -> dict[str, ActionItem]:
     return actions_map
 
 
-def tools_to_map(tools: List[AssistantTool]) -> dict[str, ActionItem]:
+def tools_to_map(
+    tools: List[AssistantTool], web_retrieval_description: str
+) -> dict[str, ActionItem]:
     """
     Converts a list of AssistantTool objects to a dictionary.
     """
@@ -72,7 +67,7 @@ def tools_to_map(tools: List[AssistantTool]) -> dict[str, ActionItem]:
         elif isinstance(tool, WebRetrievalTool):
             tools_map[tool.type] = ActionItem(
                 type=tool.type,
-                description=WEB_RETRIEVAL_DESCRIPTION,
+                description=web_retrieval_description,
             )
         elif isinstance(tool, CodeInterpreterTool):
             tools_map[tool.type] = ActionItem(

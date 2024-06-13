@@ -11,6 +11,7 @@ from lib.db import schemas
 router = APIRouter()
 
 COLLECTION_NAME = "web_retrieval"
+DEFAULT_WEB_RETRIEVAL_DESCRIPTION = "web_retrieval has not been initiated yet. Do not use this tool. To initiate it use `client.ops.web_retrieval.crawl_and_upsert(...)`"  # noqa
 
 
 async def success_callback(
@@ -39,39 +40,14 @@ async def start_crawl(
         ..., title="Root URLs and max depth"
     ),
 ):
-    if client.collections.exists(name=COLLECTION_NAME):
-        collection = client.collections.get(name=COLLECTION_NAME)
-        if data.description:
-            collection.config.update(description=data.description)
-    else:
+    if data.description == DEFAULT_WEB_RETRIEVAL_DESCRIPTION:
         data.description = "Web Retrieval contains information scraped from specific website domains. Use this when precise information in a website may need to be retrieved."  # noqa
         print(
             f"\n\nWARNING: WEB_RETRIEVAL_DESCRIPTION is not set. Defaulting to \"{data.description}\""  # noqa
         )  # noqa
-        collection = client.collections.create(
-            name=COLLECTION_NAME,
-            description=data.description,
-            generative_config=weaviate.classes.config.Configure.Generative.openai(),
-            properties=[
-                weaviate.classes.config.Property(
-                    name="url", data_type=weaviate.classes.config.DataType.TEXT
-                ),
-                weaviate.classes.config.Property(
-                    name="content",
-                    data_type=weaviate.classes.config.DataType.TEXT,
-                ),
-                weaviate.classes.config.Property(
-                    name="depth",
-                    data_type=weaviate.classes.config.DataType.NUMBER,
-                ),
-            ],
-            vectorizer_config=[
-                weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
-                    name="content_and_url",
-                    source_properties=["content", "url"],
-                )
-            ],  # noqa
-        )
+    collection = client.collections.get(name=COLLECTION_NAME)
+    if data.description:
+        collection.config.update(description=data.description)
 
     print("Starting web retrieval...")
     try:
@@ -97,18 +73,44 @@ async def start_crawl(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/ops/web_retrieval", status_code=204)
+# behaves more like restart
+@router.delete("/ops/web_retrieval", response_model=schemas.DeleteResponse)
 async def delete_collection():
     try:
         if client.collections.exists(name=COLLECTION_NAME):
             client.collections.delete(name=COLLECTION_NAME)
-            return {
-                "message": f"Collection '{COLLECTION_NAME}' deleted successfully."
-            }
+            # recreate the collection with no items
+            del_res = schemas.DeleteResponse(
+                message=f"Collection '{COLLECTION_NAME}' deleted successfully."
+            )
         else:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Collection '{COLLECTION_NAME}' not found.",
+            del_res = schemas.DeleteResponse(
+                message=f"Collection '{COLLECTION_NAME}' does not exist."
             )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        del_res = schemas.DeleteResponse(message=f"Error: {str(e)}")
+    client.collections.create(
+        name=COLLECTION_NAME,
+        description=DEFAULT_WEB_RETRIEVAL_DESCRIPTION,
+        generative_config=weaviate.classes.config.Configure.Generative.openai(),
+        properties=[
+            weaviate.classes.config.Property(
+                name="url", data_type=weaviate.classes.config.DataType.TEXT
+            ),
+            weaviate.classes.config.Property(
+                name="content",
+                data_type=weaviate.classes.config.DataType.TEXT,
+            ),
+            weaviate.classes.config.Property(
+                name="depth",
+                data_type=weaviate.classes.config.DataType.NUMBER,
+            ),
+        ],
+        vectorizer_config=[
+            weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
+                name="content_and_url",
+                source_properties=["content", "url"],
+            )
+        ],
+    )
+    return del_res

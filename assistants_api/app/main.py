@@ -18,6 +18,8 @@ from lib.db import models
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.base import BaseHTTPMiddleware
+from lib.wv.client import client as wv_client
+import weaviate
 
 
 class RawBodyMiddleware(BaseHTTPMiddleware):
@@ -43,6 +45,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if not wv_client.collections.exists(name="web_retrieval"):
+    print("Creating web retrieval collection...")
+    wv_client.collections.create(
+        name=web_retrieval_ops_router.COLLECTION_NAME,
+        description=web_retrieval_ops_router.DEFAULT_WEB_RETRIEVAL_DESCRIPTION,
+        generative_config=weaviate.classes.config.Configure.Generative.openai(),
+        properties=[
+            weaviate.classes.config.Property(
+                name="url", data_type=weaviate.classes.config.DataType.TEXT
+            ),
+            weaviate.classes.config.Property(
+                name="content",
+                data_type=weaviate.classes.config.DataType.TEXT,
+            ),
+            weaviate.classes.config.Property(
+                name="depth",
+                data_type=weaviate.classes.config.DataType.NUMBER,
+            ),
+        ],
+        vectorizer_config=[
+            weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
+                name="content_and_url",
+                source_properties=["content", "url"],
+            )
+        ],
+    )
 
 # TODO: Remove this in production
 models.Base.metadata.drop_all(bind=engine)
