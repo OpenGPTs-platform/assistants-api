@@ -1,0 +1,13 @@
+- **Lead Satellite Systems Engineer at Orbital Dynamics:** Directed the design and deployment of communication and weather satellites, improving global data coverage and transmission capabilities.
+
+- **Developed Advanced Earth Observation Satellites:** Spearheaded the creation of high-resolution Earth observation satellites, providing critical data for climate monitoring, disaster response, and agricultural management.
+
+- **Architect of Satellite Constellation Networks:** Designed and implemented a network of small satellites (CubeSats) for space debris tracking and management, significantly reducing collision risks in low Earth orbit.
+
+- **Pioneered Interplanetary Mission Designs:** Played a key role in the conceptualization and planning of missions to Mars and beyond, focusing on spacecraft navigation and landing technologies for harsh planetary environments.
+
+- **Conducted Research on Space Weather Effects:** Led a research team studying the impact of space weather on satellite operations, contributing to the development of more robust satellite designs that withstand solar and cosmic radiation.
+
+- **Developed Satellite Ground Control Software:** Created a comprehensive software suite for satellite ground control operations, enhancing the efficiency and reliability of satellite monitoring and control from Earth-based stations.
+
+- **Recipient of the Space Technology Excellence Award:** Honored for significant contributions to satellite technology and space exploration, particularly in advancing satellite propulsion and interplanetary mission design.
