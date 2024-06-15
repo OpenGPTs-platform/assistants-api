@@ -75,7 +75,9 @@ while run.status not in ['completed', 'failed']:
     print("RUN STATUS:\n",run.status)
     messages = client.beta.threads.messages.list(thread_id=thr.id, order='desc')
     print("THREAD MESSAGES:\n",messages.model_dump_json(indent=2))
-``` 
+```
+
+## [More Comprehensive Demo](./examples/compounding_demo.ipynb)
 ## [assistants_api](./assistants_api)
 ![image](https://github.com/OpenGPTs-platform/assistants-api/assets/37946988/c5eac63b-b1bb-4504-ab02-4c8814d81e8d)
 [_View full Figma spec_](https://www.figma.com/file/RBobTMUNS6EtelpTDyYqnA/Open-GPTs?type=whiteboard&node-id=0%3A1&t=Ga2G6MUOUiNjqe3l-1)
