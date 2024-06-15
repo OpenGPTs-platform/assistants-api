@@ -45,7 +45,7 @@ class WebRetrieval:
         # get relevant retrieval query
         user_instruction = self.coala_class.compose_user_instruction()
         instructions = f"""{user_instruction}Your role is generate a query for semantic search according to current working memory.
-Even if there is no relevant information in the working memory, you should still generate a query to retrieve the most relevant information from the University of Florida (UF).
+Even if there is no relevant information in the working memory, you should still generate a query relevant to the provided information.
 Only respond with the query iteself NOTHING ELSE.
 
 """  # noqa
