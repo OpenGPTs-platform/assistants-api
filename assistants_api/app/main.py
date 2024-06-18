@@ -20,6 +20,9 @@ from dotenv import load_dotenv
 from starlette.middleware.base import BaseHTTPMiddleware
 from lib.wv.client import client as wv_client
 import weaviate
+from fastapi.responses import StreamingResponse
+import asyncio
+import logging
 
 
 class RawBodyMiddleware(BaseHTTPMiddleware):
@@ -34,9 +37,20 @@ load_dotenv()
 
 app = FastAPI()
 
+logging.basicConfig(level=logging.DEBUG)
+
 app.add_middleware(
     RawBodyMiddleware,
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logging.info(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    logging.info(f"Response status: {response.status_code}")
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,6 +86,21 @@ if not wv_client.collections.exists(name="web_retrieval"):
             )
         ],
     )
+
+
+# TODO: refactor/delete this
+@app.get("/stream")
+async def stream_endpoint(request: Request):
+    async def event_generator():
+        try:
+            for i in range(100):
+                yield f"data: {i}\n\n"
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            print("Client disconnected")
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
 # TODO: Remove this in production
 models.Base.metadata.drop_all(bind=engine)
