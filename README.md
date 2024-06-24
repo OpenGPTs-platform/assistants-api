@@ -1,6 +1,6 @@
 # assistants-api
 ### [DISCORD](https://discord.gg/jZSVhtwTz6)
-### [Video Demo](https://youtu.be/yPdIEKb3jWc)
+### [Video Demo](https://www.youtube.com/watch?v=cAKcsK7uYro&t=19s)
 
 Replicate and improve the OpenAI Assistants API
 Note: currently support client `openai==1.26.0` (excluding custom tools like `web_retriever`) or use our fork by `pip install git+https://github.com/OpenGPTs-platform/openai-python.git`
