@@ -20,6 +20,8 @@ import json
 from dateutil.parser import isoparse
 import re
 
+from utils.api_client import APIClient
+
 # raise error if LITELLM_API_URL or ASSISTANTS_API_URL or FC_API_URL is not set
 if not os.getenv("LITELLM_API_URL"):
     # print a warning message suggesting that it is defaulting to openai inference
@@ -45,12 +47,12 @@ assistants_client = OpenAI(
 )
 
 if os.getenv("FC_API_URL"):
-    fc_client = OpenAI(
+    fc_client = APIClient(
         base_url=os.getenv("FC_API_URL"),
         api_key=os.getenv("FC_API_KEY"),
     )
 else:
-    fc_client = OpenAI(
+    fc_client = APIClient(
         api_key=os.getenv("FC_API_KEY"),
     )
 
