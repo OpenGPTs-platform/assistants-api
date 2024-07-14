@@ -21,6 +21,9 @@ from dateutil.parser import isoparse
 import re
 
 from utils.api_client import APIClient
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # raise error if LITELLM_API_URL or ASSISTANTS_API_URL or FC_API_URL is not set
 if not os.getenv("LITELLM_API_URL"):
@@ -45,7 +48,6 @@ else:
 assistants_client = OpenAI(
     base_url=os.getenv("ASSISTANTS_API_URL"),
 )
-
 if os.getenv("FC_API_URL"):
     fc_client = APIClient(
         base_url=os.getenv("FC_API_URL"),

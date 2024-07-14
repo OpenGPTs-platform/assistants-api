@@ -20,15 +20,17 @@ class APIClient(OpenAI):
     def __init__(self, api_key=None, base_url=None):
         api_key = api_key or os.getenv("FC_API_KEY")
         base_url = base_url or os.getenv("FC_API_URL")
-        super().__init__(api_key=api_key)
-
         self.instructor_client: Optional[instructor.Instructor] = None
 
         if api_key == 'ollama':
+            super().__init__(api_key=api_key, base_url=base_url)
             self.instructor_client = instructor.from_openai(
                 client=self,
                 mode=instructor.Mode.JSON,
             )
+        else:
+            super().__init__(api_key=api_key)
+
         self.chat = self.Chat(self)
 
     class Chat(resources.Chat):
@@ -79,6 +81,7 @@ class APIClient(OpenAI):
         DynamicModel = self._function_signature_to_pydantic_model(tool)
         assert isinstance(self.instructor_client, instructor.Instructor)
         messages = self._append_tool_description_to_messages(tool, messages)
+        print("PRE GEN", DynamicModel.schema_json(indent=2))
         instructor_res = self.instructor_client.chat.completions.create(
             model=model,
             messages=messages,
