@@ -7,11 +7,32 @@ from utils.crawling import (
 from lib.wv.client import client
 import weaviate
 from lib.db import schemas
+import os
 
 router = APIRouter()
 
 COLLECTION_NAME = "web_retrieval"
 DEFAULT_WEB_RETRIEVAL_DESCRIPTION = "web_retrieval has not been initiated yet. Do not use this tool. To initiate it use `client.ops.web_retrieval.crawl_and_upsert(...)`"  # noqa
+EMBEDDING_ENDPOINT = os.getenv("EMBEDDING_ENDPOINT")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+
+
+if EMBEDDING_ENDPOINT:
+    vectorizer_config = (
+        weaviate.classes.config.Configure.NamedVectors.text2vec_ollama(
+            name="content_and_url",
+            source_properties=["content", "url"],
+            api_endpoint=EMBEDDING_ENDPOINT,
+            model=EMBEDDING_MODEL,
+        )
+    )
+else:
+    vectorizer_config = (
+        weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
+            name="content_and_url",
+            source_properties=["content", "url"],
+        )
+    )
 
 
 async def success_callback(

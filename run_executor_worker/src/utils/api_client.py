@@ -20,7 +20,7 @@ class APIClient(OpenAI):
     def __init__(self, api_key=None, base_url=None):
         api_key = api_key or os.getenv("FC_API_KEY")
         base_url = base_url or os.getenv("FC_API_URL")
-        super().__init__(api_key=api_key, base_url=base_url)
+        super().__init__(api_key=api_key)
 
         self.instructor_client: Optional[instructor.Instructor] = None
 
@@ -29,7 +29,6 @@ class APIClient(OpenAI):
                 client=self,
                 mode=instructor.Mode.JSON,
             )
-        super().__init__(api_key=api_key, base_url=base_url)
         self.chat = self.Chat(self)
 
     class Chat(resources.Chat):
@@ -84,6 +83,7 @@ class APIClient(OpenAI):
             model=model,
             messages=messages,
             response_model=DynamicModel,
+            max_retries=3,
         )
         chat_completion = self._create_chat_completion(
             instructor_res, tool, model

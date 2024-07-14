@@ -39,7 +39,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   weaviate:
-    image: cr.weaviate.io/semitechnologies/weaviate:1.24.17
+    image: cr.weaviate.io/semitechnologies/weaviate:1.25.7
     ports:
       - "8080:8080"
       - "50051:50051"
@@ -51,7 +51,7 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
       PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
       DEFAULT_VECTORIZER_MODULE: "none"
-      ENABLE_MODULES: "text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai"
+      ENABLE_MODULES: "text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,text2vec-ollama,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai"
       CLUSTER_HOSTNAME: "node1"
     command:
       - --host
@@ -80,6 +80,8 @@ services:
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
       POSTGRES_DB: $POSTGRES_DB
+      EMBEDDING_ENDPOINT: $EMBEDDING_ENDPOINT
+      EMBEDDING_MODEL: $EMBEDDING_MODEL
       OPENAI_API_KEY: $OPENAI_API_KEY
       MINIO_ENDPOINT: minio
       MINIO_ACCESS_KEY: $MINIO_ACCESS_KEY
@@ -107,6 +109,8 @@ services:
       RABBITMQ_DEFAULT_PASS: $RABBITMQ_DEFAULT_PASS
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: $RABBITMQ_PORT
+      EMBEDDING_ENDPOINT: $EMBEDDING_ENDPOINT
+      EMBEDDING_MODEL: $EMBEDDING_MODEL
       OPENAI_API_KEY: $OPENAI_API_KEY
       ASSISTANTS_API_URL: http://assistants_api:8000
       LITELLM_API_URL: $LITELLM_API_URL

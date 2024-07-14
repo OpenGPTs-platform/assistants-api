@@ -2,6 +2,19 @@ import weaviate.classes as wvc
 from lib.wv.client import client as weaviate_client
 from utils.document_loader import DocumentLoader
 from weaviate.collections import Collection
+import os
+
+EMBEDDING_ENDPOINT = os.getenv("EMBEDDING_ENDPOINT")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+
+
+if EMBEDDING_ENDPOINT:
+    vectorizer_config = wvc.config.Configure.Vectorizer.text2vec_ollama(
+        api_endpoint=EMBEDDING_ENDPOINT,
+        model=EMBEDDING_MODEL,
+    )
+else:
+    vectorizer_config = wvc.config.Configure.Vectorizer.text2vec_openai()
 
 
 def id_to_string(id: int) -> str:
@@ -12,7 +25,7 @@ def id_to_string(id: int) -> str:
 def create_collection(name: str) -> Collection:
     collection = weaviate_client.collections.create(
         name=id_to_string(name),
-        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
+        vectorizer_config=vectorizer_config,
         generative_config=wvc.config.Configure.Generative.openai(),
     )
 

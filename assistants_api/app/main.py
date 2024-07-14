@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from starlette.middleware.base import BaseHTTPMiddleware
 from lib.wv.client import client as wv_client
 import weaviate
+import os
 
 
 class RawBodyMiddleware(BaseHTTPMiddleware):
@@ -46,6 +47,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+EMBEDDING_ENDPOINT = os.getenv("EMBEDDING_ENDPOINT")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+
+
+if EMBEDDING_ENDPOINT:
+    vectorizer_config = [
+        weaviate.classes.config.Configure.NamedVectors.text2vec_ollama(
+            name="content_and_url",
+            source_properties=["content", "url"],
+            api_endpoint=EMBEDDING_ENDPOINT,
+            model=EMBEDDING_MODEL,
+        )
+    ]
+else:
+    vectorizer_config = [
+        weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
+            name="content_and_url",
+            source_properties=["content", "url"],
+        )
+    ]
+
 if not wv_client.collections.exists(name="web_retrieval"):
     print("Creating web retrieval collection...")
     wv_client.collections.create(
@@ -65,12 +87,7 @@ if not wv_client.collections.exists(name="web_retrieval"):
                 data_type=weaviate.classes.config.DataType.NUMBER,
             ),
         ],
-        vectorizer_config=[
-            weaviate.classes.config.Configure.NamedVectors.text2vec_openai(
-                name="content_and_url",
-                source_properties=["content", "url"],
-            )
-        ],
+        vectorizer_config=vectorizer_config,
     )
 
 # TODO: Remove this in production
